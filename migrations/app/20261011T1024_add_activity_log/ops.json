@@ -1,0 +1,161 @@
+[
+  {
+    "id": "table.activityLog",
+    "label": "Create table \"activityLog\"",
+    "summary": "Creates table \"activityLog\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "activityLog"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"activityLog\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"activityLog\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"activityLog\"",
+        "sql": "CREATE TABLE \"public\".\"activityLog\" (\n  \"action\" text NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"description\" text NOT NULL,\n  \"entityId\" text,\n  \"entityType\" text NOT NULL,\n  \"href\" text,\n  \"id\" SERIAL NOT NULL,\n  \"title\" text NOT NULL,\n  \"userId\" text NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"activityLog\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"activityLog\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.activityLog.activityLog_userId_createdAt_idx_f726f04a",
+    "label": "Create index \"activityLog_userId_createdAt_idx_f726f04a\" on \"activityLog\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "activityLog_userId_createdAt_idx_f726f04a",
+        "table": "activityLog"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"activityLog_userId_createdAt_idx_f726f04a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"activityLog_userId_createdAt_idx_f726f04a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"activityLog_userId_createdAt_idx_f726f04a\"",
+        "sql": "CREATE INDEX \"activityLog_userId_createdAt_idx_f726f04a\" ON \"public\".\"activityLog\" (\"userId\", \"createdAt\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"activityLog_userId_createdAt_idx_f726f04a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"activityLog_userId_createdAt_idx_f726f04a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.activityLog.activityLog_userId_idx_a489d58a",
+    "label": "Create index \"activityLog_userId_idx_a489d58a\" on \"activityLog\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "activityLog_userId_idx_a489d58a",
+        "table": "activityLog"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"activityLog_userId_idx_a489d58a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"activityLog_userId_idx_a489d58a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"activityLog_userId_idx_a489d58a\"",
+        "sql": "CREATE INDEX \"activityLog_userId_idx_a489d58a\" ON \"public\".\"activityLog\" (\"userId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"activityLog_userId_idx_a489d58a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"activityLog_userId_idx_a489d58a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.activityLog.activityLog_userId_fkey",
+    "label": "Add foreign key \"activityLog_userId_fkey\" on \"activityLog\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "activityLog_userId_fkey",
+        "table": "activityLog"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"activityLog_userId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "activityLog_userId_fkey",
+          "public",
+          "\"public\".\"activityLog\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"activityLog_userId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"activityLog\"\nADD CONSTRAINT \"activityLog_userId_fkey\"\nFOREIGN KEY (\"userId\")\nREFERENCES \"public\".\"user\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"activityLog_userId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "activityLog_userId_fkey",
+          "public",
+          "\"public\".\"activityLog\""
+        ]
+      }
+    ]
+  }
+]

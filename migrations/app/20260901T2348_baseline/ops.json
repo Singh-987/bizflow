@@ -1,0 +1,580 @@
+[
+  {
+    "id": "schema.public",
+    "label": "Create schema \"public\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "Create schema \"public\"",
+        "sql": "CREATE SCHEMA IF NOT EXISTS \"public\"",
+        "params": []
+      }
+    ],
+    "postcheck": []
+  },
+  {
+    "id": "table.lease",
+    "label": "Create table \"lease\"",
+    "summary": "Creates table \"lease\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "lease"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"lease\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"lease\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"lease\"",
+        "sql": "CREATE TABLE \"public\".\"lease\" (\n  \"agreementEndsOn\" timestamptz NOT NULL,\n  \"agreementStartsOn\" timestamptz NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"rent\" int4 NOT NULL,\n  \"securityDeposit\" int4 NOT NULL,\n  \"status\" text NOT NULL,\n  \"tenantId\" int4 NOT NULL,\n  \"unitId\" int4 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"lease\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"lease\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.property",
+    "label": "Create table \"property\"",
+    "summary": "Creates table \"property\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "property"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"property\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"property\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"property\"",
+        "sql": "CREATE TABLE \"public\".\"property\" (\n  \"address\" text NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"name\" text NOT NULL,\n  \"userId\" text NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"property\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"property\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.tenant",
+    "label": "Create table \"tenant\"",
+    "summary": "Creates table \"tenant\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "tenant"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"tenant\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"tenant\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"tenant\"",
+        "sql": "CREATE TABLE \"public\".\"tenant\" (\n  \"alternatePhone\" text NOT NULL,\n  \"email\" text,\n  \"govtId\" text,\n  \"govtIdFile\" text,\n  \"id\" SERIAL NOT NULL,\n  \"name\" text NOT NULL,\n  \"phone\" text NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"tenant\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"tenant\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.unit",
+    "label": "Create table \"unit\"",
+    "summary": "Creates table \"unit\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "unit"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"unit\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"unit\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"unit\"",
+        "sql": "CREATE TABLE \"public\".\"unit\" (\n  \"id\" SERIAL NOT NULL,\n  \"number\" int4 NOT NULL,\n  \"propertyId\" int4 NOT NULL,\n  \"rent\" int4 NOT NULL,\n  \"status\" text NOT NULL,\n  \"type\" text NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"unit\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"unit\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.user",
+    "label": "Create table \"user\"",
+    "summary": "Creates table \"user\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "user"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"user\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"user\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"user\"",
+        "sql": "CREATE TABLE \"public\".\"user\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"email\" text NOT NULL,\n  \"id\" text NOT NULL,\n  \"name\" text,\n  \"updatedAt\" timestamptz NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"user\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"user\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.user.user_email_key",
+    "label": "Add unique constraint on \"user\" (email)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "user_email_key",
+        "table": "user"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"user_email_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "user_email_key",
+          "public",
+          "\"public\".\"user\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"user_email_key\"",
+        "sql": "ALTER TABLE \"public\".\"user\" ADD CONSTRAINT \"user_email_key\" UNIQUE (\"email\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"user_email_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "user_email_key",
+          "public",
+          "\"public\".\"user\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.lease.lease_tenantId_idx_c93ed4f1",
+    "label": "Create index \"lease_tenantId_idx_c93ed4f1\" on \"lease\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "lease_tenantId_idx_c93ed4f1",
+        "table": "lease"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"lease_tenantId_idx_c93ed4f1\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"lease_tenantId_idx_c93ed4f1\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"lease_tenantId_idx_c93ed4f1\"",
+        "sql": "CREATE INDEX \"lease_tenantId_idx_c93ed4f1\" ON \"public\".\"lease\" (\"tenantId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"lease_tenantId_idx_c93ed4f1\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"lease_tenantId_idx_c93ed4f1\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.lease.lease_unitId_idx_be785412",
+    "label": "Create index \"lease_unitId_idx_be785412\" on \"lease\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "lease_unitId_idx_be785412",
+        "table": "lease"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"lease_unitId_idx_be785412\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"lease_unitId_idx_be785412\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"lease_unitId_idx_be785412\"",
+        "sql": "CREATE INDEX \"lease_unitId_idx_be785412\" ON \"public\".\"lease\" (\"unitId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"lease_unitId_idx_be785412\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"lease_unitId_idx_be785412\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.property.property_userId_idx_a489d58a",
+    "label": "Create index \"property_userId_idx_a489d58a\" on \"property\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "property_userId_idx_a489d58a",
+        "table": "property"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"property_userId_idx_a489d58a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"property_userId_idx_a489d58a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"property_userId_idx_a489d58a\"",
+        "sql": "CREATE INDEX \"property_userId_idx_a489d58a\" ON \"public\".\"property\" (\"userId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"property_userId_idx_a489d58a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"property_userId_idx_a489d58a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.unit.unit_propertyId_idx_4bcae41c",
+    "label": "Create index \"unit_propertyId_idx_4bcae41c\" on \"unit\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "unit_propertyId_idx_4bcae41c",
+        "table": "unit"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"unit_propertyId_idx_4bcae41c\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"unit_propertyId_idx_4bcae41c\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"unit_propertyId_idx_4bcae41c\"",
+        "sql": "CREATE INDEX \"unit_propertyId_idx_4bcae41c\" ON \"public\".\"unit\" (\"propertyId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"unit_propertyId_idx_4bcae41c\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"unit_propertyId_idx_4bcae41c\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.lease.lease_tenantId_fkey",
+    "label": "Add foreign key \"lease_tenantId_fkey\" on \"lease\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "lease_tenantId_fkey",
+        "table": "lease"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"lease_tenantId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "lease_tenantId_fkey",
+          "public",
+          "\"public\".\"lease\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"lease_tenantId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"lease\"\nADD CONSTRAINT \"lease_tenantId_fkey\"\nFOREIGN KEY (\"tenantId\")\nREFERENCES \"public\".\"tenant\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"lease_tenantId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "lease_tenantId_fkey",
+          "public",
+          "\"public\".\"lease\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.lease.lease_unitId_fkey",
+    "label": "Add foreign key \"lease_unitId_fkey\" on \"lease\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "lease_unitId_fkey",
+        "table": "lease"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"lease_unitId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "lease_unitId_fkey",
+          "public",
+          "\"public\".\"lease\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"lease_unitId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"lease\"\nADD CONSTRAINT \"lease_unitId_fkey\"\nFOREIGN KEY (\"unitId\")\nREFERENCES \"public\".\"unit\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"lease_unitId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "lease_unitId_fkey",
+          "public",
+          "\"public\".\"lease\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.property.property_userId_fkey",
+    "label": "Add foreign key \"property_userId_fkey\" on \"property\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "property_userId_fkey",
+        "table": "property"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"property_userId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "property_userId_fkey",
+          "public",
+          "\"public\".\"property\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"property_userId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"property\"\nADD CONSTRAINT \"property_userId_fkey\"\nFOREIGN KEY (\"userId\")\nREFERENCES \"public\".\"user\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"property_userId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "property_userId_fkey",
+          "public",
+          "\"public\".\"property\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.unit.unit_propertyId_fkey",
+    "label": "Add foreign key \"unit_propertyId_fkey\" on \"unit\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "unit_propertyId_fkey",
+        "table": "unit"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"unit_propertyId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "unit_propertyId_fkey",
+          "public",
+          "\"public\".\"unit\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"unit_propertyId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"unit\"\nADD CONSTRAINT \"unit_propertyId_fkey\"\nFOREIGN KEY (\"propertyId\")\nREFERENCES \"public\".\"property\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"unit_propertyId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "unit_propertyId_fkey",
+          "public",
+          "\"public\".\"unit\""
+        ]
+      }
+    ]
+  }
+]

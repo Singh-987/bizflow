@@ -1,0 +1,164 @@
+[
+  {
+    "id": "table.notificationRead",
+    "label": "Create table \"notificationRead\"",
+    "summary": "Creates table \"notificationRead\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "notificationRead"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"notificationRead\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"notificationRead\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"notificationRead\"",
+        "sql": "CREATE TABLE \"public\".\"notificationRead\" (\n  \"activityId\" text NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"readAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"userId\" text NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"notificationRead\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"notificationRead\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.notificationRead.notificationRead_userId_activityId_key",
+    "label": "Add unique constraint on \"notificationRead\" (userId, activityId)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "notificationRead_userId_activityId_key",
+        "table": "notificationRead"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"notificationRead_userId_activityId_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "notificationRead_userId_activityId_key",
+          "public",
+          "\"public\".\"notificationRead\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"notificationRead_userId_activityId_key\"",
+        "sql": "ALTER TABLE \"public\".\"notificationRead\" ADD CONSTRAINT \"notificationRead_userId_activityId_key\" UNIQUE (\"userId\", \"activityId\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"notificationRead_userId_activityId_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "notificationRead_userId_activityId_key",
+          "public",
+          "\"public\".\"notificationRead\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.notificationRead.notificationRead_userId_idx_a489d58a",
+    "label": "Create index \"notificationRead_userId_idx_a489d58a\" on \"notificationRead\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "notificationRead_userId_idx_a489d58a",
+        "table": "notificationRead"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"notificationRead_userId_idx_a489d58a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"notificationRead_userId_idx_a489d58a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"notificationRead_userId_idx_a489d58a\"",
+        "sql": "CREATE INDEX \"notificationRead_userId_idx_a489d58a\" ON \"public\".\"notificationRead\" (\"userId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"notificationRead_userId_idx_a489d58a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"notificationRead_userId_idx_a489d58a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.notificationRead.notificationRead_userId_fkey",
+    "label": "Add foreign key \"notificationRead_userId_fkey\" on \"notificationRead\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "notificationRead_userId_fkey",
+        "table": "notificationRead"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"notificationRead_userId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "notificationRead_userId_fkey",
+          "public",
+          "\"public\".\"notificationRead\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"notificationRead_userId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"notificationRead\"\nADD CONSTRAINT \"notificationRead_userId_fkey\"\nFOREIGN KEY (\"userId\")\nREFERENCES \"public\".\"user\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"notificationRead_userId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "notificationRead_userId_fkey",
+          "public",
+          "\"public\".\"notificationRead\""
+        ]
+      }
+    ]
+  }
+]

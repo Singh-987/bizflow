@@ -1,0 +1,164 @@
+[
+  {
+    "id": "table.electricityReading",
+    "label": "Create table \"electricityReading\"",
+    "summary": "Creates table \"electricityReading\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "electricityReading"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"electricityReading\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"electricityReading\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"electricityReading\"",
+        "sql": "CREATE TABLE \"public\".\"electricityReading\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"currentReading\" int4 NOT NULL,\n  \"electricityBill\" int4 NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"leaseId\" int4 NOT NULL,\n  \"meterChanged\" bool DEFAULT false NOT NULL,\n  \"month\" text NOT NULL,\n  \"perUnitCharge\" int4 NOT NULL,\n  \"previousReading\" int4 NOT NULL,\n  \"unitsUsed\" int4 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"electricityReading\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"electricityReading\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.electricityReading.electricityReading_leaseId_month_key",
+    "label": "Add unique constraint on \"electricityReading\" (leaseId, month)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "electricityReading_leaseId_month_key",
+        "table": "electricityReading"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"electricityReading_leaseId_month_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "electricityReading_leaseId_month_key",
+          "public",
+          "\"public\".\"electricityReading\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"electricityReading_leaseId_month_key\"",
+        "sql": "ALTER TABLE \"public\".\"electricityReading\" ADD CONSTRAINT \"electricityReading_leaseId_month_key\" UNIQUE (\"leaseId\", \"month\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"electricityReading_leaseId_month_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "electricityReading_leaseId_month_key",
+          "public",
+          "\"public\".\"electricityReading\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.electricityReading.electricityReading_leaseId_idx_f789d0e1",
+    "label": "Create index \"electricityReading_leaseId_idx_f789d0e1\" on \"electricityReading\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "electricityReading_leaseId_idx_f789d0e1",
+        "table": "electricityReading"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"electricityReading_leaseId_idx_f789d0e1\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"electricityReading_leaseId_idx_f789d0e1\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"electricityReading_leaseId_idx_f789d0e1\"",
+        "sql": "CREATE INDEX \"electricityReading_leaseId_idx_f789d0e1\" ON \"public\".\"electricityReading\" (\"leaseId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"electricityReading_leaseId_idx_f789d0e1\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"electricityReading_leaseId_idx_f789d0e1\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.electricityReading.electricityReading_leaseId_fkey",
+    "label": "Add foreign key \"electricityReading_leaseId_fkey\" on \"electricityReading\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "electricityReading_leaseId_fkey",
+        "table": "electricityReading"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"electricityReading_leaseId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "electricityReading_leaseId_fkey",
+          "public",
+          "\"public\".\"electricityReading\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"electricityReading_leaseId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"electricityReading\"\nADD CONSTRAINT \"electricityReading_leaseId_fkey\"\nFOREIGN KEY (\"leaseId\")\nREFERENCES \"public\".\"lease\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"electricityReading_leaseId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "electricityReading_leaseId_fkey",
+          "public",
+          "\"public\".\"electricityReading\""
+        ]
+      }
+    ]
+  }
+]

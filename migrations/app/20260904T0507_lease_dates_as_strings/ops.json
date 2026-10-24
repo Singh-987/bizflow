@@ -1,0 +1,87 @@
+[
+  {
+    "id": "column.public.property.notes",
+    "label": "Add column \"notes\" to \"property\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "notes",
+        "table": "property"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"notes\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "property",
+          "notes"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"notes\"",
+        "sql": "ALTER TABLE \"public\".\"property\" ADD COLUMN \"notes\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"notes\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "property",
+          "notes"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "alterNullability.dropNotNull.lease.agreementEndsOn",
+    "label": "Drop NOT NULL on \"lease\".\"agreementEndsOn\"",
+    "operationClass": "widening",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "agreementEndsOn",
+        "table": "lease"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"agreementEndsOn\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "lease",
+          "agreementEndsOn"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop NOT NULL on \"agreementEndsOn\"",
+        "sql": "ALTER TABLE \"public\".\"lease\" ALTER COLUMN \"agreementEndsOn\" DROP NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"agreementEndsOn\" is nullable",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3 AND \"is_nullable\" = $4)) AS \"result\"",
+        "params": [
+          "public",
+          "lease",
+          "agreementEndsOn",
+          "YES"
+        ]
+      }
+    ]
+  }
+]

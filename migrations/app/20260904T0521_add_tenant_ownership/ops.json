@@ -1,0 +1,206 @@
+[
+  {
+    "id": "column.public.tenant.userId",
+    "label": "Add column \"userId\" to \"tenant\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "userId",
+        "table": "tenant"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"userId\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "tenant",
+          "userId"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"userId\"",
+        "sql": "ALTER TABLE \"public\".\"tenant\" ADD COLUMN \"userId\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"userId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "tenant",
+          "userId"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "data_migration.backfill-tenant-userId",
+    "label": "Data transform: backfill-tenant-userId",
+    "operationClass": "data",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "Check backfill-tenant-userId has work to do",
+        "sql": "SELECT EXISTS (SELECT \"id\" AS \"id\" FROM \"public\".\"tenant\" WHERE \"userId\" IS NULL LIMIT 1) AS ok",
+        "params": []
+      }
+    ],
+    "execute": [
+      {
+        "description": "Run backfill-tenant-userId",
+        "sql": "UPDATE \"public\".\"tenant\" SET \"userId\" = $1 WHERE \"id\" IN ($2, $3)",
+        "params": [
+          "XWDnn5f6SvGGWOw5P6DtEkpnEdWho7uO",
+          1,
+          2
+        ]
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "Verify backfill-tenant-userId resolved all violations",
+        "sql": "SELECT NOT EXISTS (SELECT \"id\" AS \"id\" FROM \"public\".\"tenant\" WHERE \"userId\" IS NULL LIMIT 1) AS ok",
+        "params": []
+      }
+    ]
+  },
+  {
+    "id": "alterNullability.setNotNull.tenant.userId",
+    "label": "Set NOT NULL on \"tenant\".\"userId\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "userId",
+        "table": "tenant"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"userId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "tenant",
+          "userId"
+        ]
+      },
+      {
+        "description": "ensure no NULL values in \"userId\"",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"public\".\"tenant\" WHERE \"userId\" IS NULL) AS \"result\"",
+        "params": []
+      }
+    ],
+    "execute": [
+      {
+        "description": "set NOT NULL on \"userId\"",
+        "sql": "ALTER TABLE \"public\".\"tenant\" ALTER COLUMN \"userId\" SET NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"userId\" is NOT NULL",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3 AND \"is_nullable\" = $4)) AS \"result\"",
+        "params": [
+          "public",
+          "tenant",
+          "userId",
+          "NO"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.tenant.tenant_userId_idx_a489d58a",
+    "label": "Create index \"tenant_userId_idx_a489d58a\" on \"tenant\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "tenant_userId_idx_a489d58a",
+        "table": "tenant"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"tenant_userId_idx_a489d58a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"tenant_userId_idx_a489d58a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"tenant_userId_idx_a489d58a\"",
+        "sql": "CREATE INDEX \"tenant_userId_idx_a489d58a\" ON \"public\".\"tenant\" (\"userId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"tenant_userId_idx_a489d58a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"tenant_userId_idx_a489d58a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.tenant.tenant_userId_fkey",
+    "label": "Add foreign key \"tenant_userId_fkey\" on \"tenant\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "tenant_userId_fkey",
+        "table": "tenant"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"tenant_userId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "tenant_userId_fkey",
+          "public",
+          "\"public\".\"tenant\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"tenant_userId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"tenant\"\nADD CONSTRAINT \"tenant_userId_fkey\"\nFOREIGN KEY (\"userId\")\nREFERENCES \"public\".\"user\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"tenant_userId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "tenant_userId_fkey",
+          "public",
+          "\"public\".\"tenant\""
+        ]
+      }
+    ]
+  }
+]

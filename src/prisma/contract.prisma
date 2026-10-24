@@ -1,21 +1,128 @@
 // use prisma-next
-
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  username  String?
-  name      String?
-  posts     Post[]
-  createdAt TimestamptzString @default(now())
-  updatedAt temporal.updatedAtString()
+  id         String                     @id
+  email      String                     @unique
+  name       String?
+  properties Property[]
+  tenants    Tenant[]
+  notificationReads NotificationRead[]
+  activityLogs ActivityLog[]
+  createdAt  TimestamptzString          @default(now())
+  updatedAt  temporal.updatedAtString()
 }
 
-model Post {
-  id        Int      @id @default(autoincrement())
-  title     String
-  content   String?
-  author    User     @relation(fields: [authorId], references: [id])
-  authorId  Int
-  createdAt TimestamptzString @default(now())
-  updatedAt temporal.updatedAtString()
+model Property {
+  id      Int    @id @default(autoincrement())
+  name    String
+  address String
+  notes   String?
+  userId  String
+  user    User   @relation(fields:[userId], references:[id], onDelete: Cascade)
+  units   Unit[]
+  expenses Expense[]
+}
+
+model Unit {
+  id         Int      @id @default(autoincrement())
+  number     Int
+  type       String
+  rent       Int
+  status     String
+  propertyId Int
+  property   Property @relation(fields:[propertyId], references:[id], onDelete: Cascade)
+  leases     Lease[]
+}
+
+model Tenant {
+  id             Int     @id @default(autoincrement())
+  name           String
+  phone          String
+  alternatePhone String
+  email          String?
+  govtId         String?
+  govtIdFile     String?
+  userId         String
+  user           User   @relation(fields:[userId], references:[id], onDelete: Cascade)
+  leases         Lease[]
+}
+
+model Lease {
+  id                Int      @id @default(autoincrement())
+  tenantId          Int
+  tenant            Tenant   @relation(fields:[tenantId], references:[id], onDelete: Cascade)
+  unitId            Int
+  unit              Unit     @relation(fields:[unitId], references:[id], onDelete: Cascade)
+  agreementStartsOn TimestamptzString
+  agreementEndsOn   TimestamptzString?
+  rent              Int
+  securityDeposit   Int
+  status            String
+  payments          Payment[]
+  electricityReadings   ElectricityReading[]
+}
+
+model Payment{
+  id              Int     @id @default(autoincrement())
+  leaseId         Int
+  lease           Lease   @relation(fields:[leaseId], references:[id], onDelete: Cascade)
+  amount          Int
+  type            String  @default("RENT")
+  paidOn          TimestamptzString
+  month           String
+  method          String
+  note           String?
+  createdAt       TimestamptzString @default(now())
+}
+
+model ElectricityReading{
+  id              Int     @id  @default(autoincrement())
+  leaseId         Int
+  lease           Lease   @relation(fields:[leaseId], references:[id], onDelete: Cascade)
+  month           String
+  previousReading Int
+  currentReading  Int
+  unitsUsed       Int
+  perUnitCharge   Int
+  electricityBill Int
+  meterChanged    Boolean  @default(false)
+  createdAt       TimestamptzString @default(now())
+
+  @@unique([leaseId, month])
+}
+
+model Expense{
+  id              Int     @id  @default(autoincrement())
+  propertyId      Int
+  property        Property @relation(fields:[propertyId], references:[id], onDelete: Cascade)
+  amount          Float
+  date            String
+  category        String
+  note            String?
+  createdAt       TimestamptzString @default(now())
+ }
+
+ model NotificationRead{
+  id              Int     @id  @default(autoincrement())
+  userId          String
+  user            User    @relation(fields:[userId], references:[id], onDelete: Cascade)
+  activityId      String
+  readAt          TimestamptzString @default(now())
+  @@unique([userId, activityId])
+ }
+
+ model ActivityLog {
+  id          Int      @id @default(autoincrement())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  entityType  String
+  entityId    String?
+  action      String
+  title       String
+  description String
+  href        String?
+
+  createdAt   TimestamptzString @default(now())
+
+  @@index([userId, createdAt])
 }

@@ -14,10 +14,13 @@
   "dependencies": {
     "@prisma/client": "^7.10.0",
     "@prisma/orm-postgres": "^8.0.0-rc.8",
+    "better-auth": "^1.7.2",
     "dotenv": "^17.4.2",
+    "lucide-react": "^1.53.0",
     "next": "16.3.3",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "temporal-polyfill": "^1.0.4"
   },
   "devDependencies": {
     "@prisma/cli-engine": "^0.2.3",
@@ -28,7 +31,7 @@
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.3.3",
-    "prisma": "^8.0.0-rc.10",
+    "prisma": "^8.0.0-rc.12",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

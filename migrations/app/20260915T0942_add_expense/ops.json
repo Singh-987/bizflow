@@ -1,0 +1,122 @@
+[
+  {
+    "id": "table.expense",
+    "label": "Create table \"expense\"",
+    "summary": "Creates table \"expense\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "expense"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"expense\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"expense\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"expense\"",
+        "sql": "CREATE TABLE \"public\".\"expense\" (\n  \"amount\" float8 NOT NULL,\n  \"category\" text NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"date\" text NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"note\" text,\n  \"propertyId\" int4 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"expense\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"expense\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.expense.expense_propertyId_idx_4bcae41c",
+    "label": "Create index \"expense_propertyId_idx_4bcae41c\" on \"expense\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "expense_propertyId_idx_4bcae41c",
+        "table": "expense"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"expense_propertyId_idx_4bcae41c\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"expense_propertyId_idx_4bcae41c\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"expense_propertyId_idx_4bcae41c\"",
+        "sql": "CREATE INDEX \"expense_propertyId_idx_4bcae41c\" ON \"public\".\"expense\" (\"propertyId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"expense_propertyId_idx_4bcae41c\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"expense_propertyId_idx_4bcae41c\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.expense.expense_propertyId_fkey",
+    "label": "Add foreign key \"expense_propertyId_fkey\" on \"expense\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "expense_propertyId_fkey",
+        "table": "expense"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"expense_propertyId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "expense_propertyId_fkey",
+          "public",
+          "\"public\".\"expense\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"expense_propertyId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"expense\"\nADD CONSTRAINT \"expense_propertyId_fkey\"\nFOREIGN KEY (\"propertyId\")\nREFERENCES \"public\".\"property\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"expense_propertyId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "expense_propertyId_fkey",
+          "public",
+          "\"public\".\"expense\""
+        ]
+      }
+    ]
+  }
+]
