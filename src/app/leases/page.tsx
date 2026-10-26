@@ -94,8 +94,11 @@ export default async function LeasesPage({ searchParams, }: {
         ? Number(params.leaseId)
         : null;
         const action = params.action;
-    const leases = await getLeases();
-    const payments = await getPayments();
+    const [leases, payments] = await Promise.all([
+getLeases(),
+getPayments(),
+]);
+
 
     return (
         <AppShell>

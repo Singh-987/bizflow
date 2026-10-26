@@ -58,10 +58,33 @@ export default function AppShell({ children, }: {
     children: React.ReactNode;
 }) {
     const pathname = usePathname();
+    const [pendingPath, setPendingPath]= useState<string | null>(null);
+    const navigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     useEffect(() => {
-        setMobileMenuOpen(false);
-    }, [pathname])
+    setMobileMenuOpen(false);
+    setPendingPath(null);
+
+    if (navigationTimeoutRef.current) {
+        clearTimeout(navigationTimeoutRef.current);
+        navigationTimeoutRef.current = null;
+    }
+}, [pathname]);
     const router = useRouter();
+   function handleNavigation(href: string) {
+    const destinationPath = href.split("?")[0].split("#")[0];
+
+    if (destinationPath === pathname) return;
+
+    setPendingPath(destinationPath);
+
+    if (navigationTimeoutRef.current) {
+        clearTimeout(navigationTimeoutRef.current);
+    }
+
+    navigationTimeoutRef.current = setTimeout(() => {
+        setPendingPath(null);
+    }, 15000);
+}
     const [authChecking, setAuthChecking]= useState(true);
     const [search, setSearch] = useState("");
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -329,12 +352,22 @@ if (authChecking) {
                                 <Link
                                     key={item.href}
                                     href={item.href}
+                                    onClick={() => handleNavigation(item.href)}
                                     className={`block rounded-lg px-4 py-3 text-sm font-medium transition ${active
                                         ? "bg-slate-900 text-white"
                                         : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
                                         }`}
                                 >
-                                    {item.name}
+                                    <span className="flex items-center justify-between gap-2">
+    {item.name}
+    {pendingPath === item.href && (
+        <span
+            className="h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent"
+            role="status"
+            aria-label={`Loading ${item.name}`}
+        />
+    )}
+</span>
                                 </Link>
                             );
                         })}
@@ -342,9 +375,19 @@ if (authChecking) {
                     <div className="border-t border-slate-200 p-4 dark:border-slate-800">
                         <Link
                             href="/settings"
+                            onClick={() => handleNavigation("/settings")}
                             className="block rounded-lg px-4 py-3 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
                         >
-                            Settings
+                            <span className="flex items-center justify-between gap-2">
+    Settings
+    {pendingPath === "/settings" && (
+        <span
+            className="h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent"
+            role="status"
+            aria-label="Loading Settings"
+        />
+    )}
+</span>
                         </Link>
                     </div>
                 </aside>
@@ -703,23 +746,44 @@ router.push(
                                         <Link
                                             key={item.href}
                                             href={item.href}
-                                            onClick={() => setMobileMenuOpen(false)}
+                                            onClick={() => {
+    setMobileMenuOpen(false);
+    handleNavigation(item.href);
+}}
                                             className={`mb-1 block rounded-lg px-4 py-3 text-sm font-medium transition ${active
                                                 ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900"
                                                 : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
                                                 }`}
                                         >
-                                            {item.name}
-                                        </Link>
+    <span className="flex items-center justify-between gap-2">
+        {item.name}
+        {pendingPath === item.href && (
+            <span
+                className="h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent"
+                role="status"
+                aria-label={`Loading ${item.name}`}
+            />
+        )}
+    </span>
+</Link>
                                     );
                                 })}
 
                                 <Link
                                     href="/settings"
-                                    onClick={() => setMobileMenuOpen(false)}
+                                    onClick={() => handleNavigation("/settings")}
                                     className="mt-2 block rounded-lg border-t border-slate-200 px-4 py-3 text-sm font-medium text-slate-600 dark:border-slate-700 dark:text-slate-300"
                                 >
-                                    Settings
+                                    <span className="flex items-center justify-between gap-2">
+    Settings
+    {pendingPath === "/settings" && (
+        <span
+            className="h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent"
+            role="status"
+            aria-label="Loading Settings"
+        />
+    )}
+</span>
                                 </Link>
 
                                 <button

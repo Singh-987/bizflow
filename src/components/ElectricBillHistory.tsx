@@ -30,7 +30,9 @@ export default function ElectricityBillHistory({
                 setLoading(false);
             }
         }
-        loadBills();
+        if (leaseId) {
+    loadBills();
+}
         function handleBillUpdated(event: Event) {
             const customEvent = event as CustomEvent<{ leaseId: string; }>;
             if (String(customEvent.detail?.leaseId) === String(leaseId)) {
