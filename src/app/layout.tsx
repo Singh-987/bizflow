@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-    title: "BizFlow",
-    description: "Property and rental management made simple",
+    title: "Rentello",
+    description: "Your rentals. Under control.",
 };
 
 const themeScript = `

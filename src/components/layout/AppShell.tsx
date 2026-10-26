@@ -315,7 +315,7 @@ if (authChecking) {
                 <aside className="hidden w-64 flex-col border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 md:flex">
                     <div className="flex h-16 items-center border-b border-slate-200 px-6 dark:border-slate-800">
                         <div className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
-                            BizFlow
+                            Rentello
                         </div>
                     </div>
 
@@ -365,11 +365,11 @@ if (authChecking) {
                                 href="/"
                                 className="text-lg font-bold tracking-tight text-slate-900 dark:text-white md:hidden"
                             >
-                                BizFlow
+                                Rentello
                             </Link>
 
                             <h1 className="hidden text-lg font-semibold text-slate-900 dark:text-white md:block">
-                                BizFlow
+                                Rentello
                             </h1>
                         </div>
                         <div className="relative order-last w-full min-w-0 md:order-none md:max-w-md md:flex-1">

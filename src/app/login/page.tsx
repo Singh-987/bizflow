@@ -90,15 +90,15 @@ export default function Login(){
         <div className="w-full max-w-md">
             <div className="mb-8 text-center">
                 <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-900 text-xl font-bold text-white shadow-sm dark:bg-slate-100 dark:text-slate-900">
-                    B
+                    R
                 </div>
 
                 <h1 className="text-3xl font-bold tracking-tight">
-                    BizFlow
+                    Rentello
                 </h1>
 
                 <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-                    Property and rental management made simple
+                    Your rentals. Under control.
                 </p>
             </div>
 
