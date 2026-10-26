@@ -492,10 +492,17 @@ if (authChecking) {
 
                                 {showNotifications && (
                                     <div className="absolute right-0 top-full z-50 mt-2
-    w-[min(20rem,calc(100vw-2rem))] rounded-lg border border-slate-200
-    bg-white shadow-lg dark:border-slate-700
-    dark:bg-slate-900"
-                                    >
+    w-[min(20rem,calc(100vw-2rem))] max-w-[calc(100vw-1rem)]
+    rounded-lg border border-slate-200
+    bg-white shadow-lg
+    dark:border-slate-700
+    dark:bg-slate-900
+    [@media(max-width:767px)]:fixed
+    [@media(max-width:767px)]:right-2
+    [@media(max-width:767px)]:left-2
+    [@media(max-width:767px)]:top-16
+    [@media(max-width:767px)]:w-auto"
+>
                                         <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-700">
                                             <div className="flex items-center justify-between gap-2">
                                                 <h2 className="font-semibold text-slate-900 dark:text-white">
