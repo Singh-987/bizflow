@@ -32,34 +32,44 @@ type Lease = {
     status: string;
 };
 
+
 async function getLeases(): Promise<Lease[]> {
-    const response = await fetch("http://localhost:3000/api/leases", {
+    const requestHeaders = await headers();
+    const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
+    const protocol = requestHeaders.get("x-forwarded-proto") ?? "http";
+
+    if (!host) return [];
+
+    const response = await fetch(`${protocol}://${host}/api/leases`, {
         cache: "no-store",
         headers: {
-            Cookie: (await headers()).get("cookie") ?? "",
+            Cookie: requestHeaders.get("cookie") ?? "",
         },
     });
 
-    if (!response.ok) {
-        return [];
-    }
+    if (!response.ok) return [];
 
     return response.json();
 }
+
+
 async function getPayments() {
-    const response = await fetch("http://localhost:3000/api/payments", {
+    const requestHeaders = await headers();
+    const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
+    const protocol = requestHeaders.get("x-forwarded-proto") ?? "http";
+
+    if (!host) return [];
+
+    const response = await fetch(`${protocol}://${host}/api/payments`, {
         cache: "no-store",
         headers: {
-            Cookie: (await headers()).get("cookie") ?? "",
+            Cookie: requestHeaders.get("cookie") ?? "",
         },
     });
-    if (!response.ok) {
-        return [];
-    }
-    const data = await response.json();
 
+    if (!response.ok) return [];
 
-    return data;
+    return response.json();
 }
 
 export default async function LeasesPage({ searchParams, }: {
