@@ -742,6 +742,13 @@
                   "kind": "scalar"
                 }
               },
+              "isArchived": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bool@1",
+                  "kind": "scalar"
+                }
+              },
               "name": {
                 "nullable": false,
                 "type": {
@@ -818,6 +825,9 @@
                 },
                 "id": {
                   "column": "id"
+                },
+                "isArchived": {
+                  "column": "isArchived"
                 },
                 "name": {
                   "column": "name"
@@ -1773,6 +1783,15 @@
                   "nativeType": "int4",
                   "nullable": false
                 },
+                "isArchived": {
+                  "codecId": "pg/bool@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": false
+                  },
+                  "nativeType": "bool",
+                  "nullable": false
+                },
                 "name": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -2034,7 +2053,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "c81e0171449e04871b1a0452187e3f8ceba9378f45472dcd681279526c5d69a4"
+    "storageHash": "d977684d9f920daf372655c585cc28911f5f2eaa2c183fc49be5a3f93207c4da"
   },
   "execution": {
     "executionHash": "a499031370d1fd1891ca11072d3f7e11be752b686057f7c6d0900ee0159f4ed0",

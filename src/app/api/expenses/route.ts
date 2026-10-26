@@ -107,6 +107,15 @@ export async function POST(request:Request) {
             {status: 404}
         );
     }
+    if (property.isArchived) {
+    return Response.json(
+        {
+            error: "This property is archived. Restore it before recording new expenses.",
+            code: "PROPERTY_ARCHIVED",
+        },
+        { status: 409 }
+    );
+}
     const expense = await db.orm.public.Expense.create({
         propertyId: property.id,
         amount,

@@ -33,7 +33,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'c81e0171449e04871b1a0452187e3f8ceba9378f45472dcd681279526c5d69a4'>;
+  StorageHashBase<'d977684d9f920daf372655c585cc28911f5f2eaa2c183fc49be5a3f93207c4da'>;
 export type ExecutionHash =
   ExecutionHashBase<'a499031370d1fd1891ca11072d3f7e11be752b686057f7c6d0900ee0159f4ed0'>;
 export type ProfileHash =
@@ -306,6 +306,7 @@ export type FieldOutputTypes = {
       readonly address: CodecTypes['pg/text@1']['output'];
       readonly notes: CodecTypes['pg/text@1']['output'] | null;
       readonly userId: CodecTypes['pg/text@1']['output'];
+      readonly isArchived: CodecTypes['pg/bool@1']['output'];
     };
     readonly Tenant: {
       readonly id: CodecTypes['pg/int4@1']['output'];
@@ -401,6 +402,7 @@ export type FieldInputTypes = {
       readonly address: CodecTypes['pg/text@1']['input'];
       readonly notes: CodecTypes['pg/text@1']['input'] | null;
       readonly userId: CodecTypes['pg/text@1']['input'];
+      readonly isArchived: CodecTypes['pg/bool@1']['input'];
     };
     readonly Tenant: {
       readonly id: CodecTypes['pg/int4@1']['input'];
@@ -493,6 +495,7 @@ export type StorageColumnTypes = {
     readonly property: {
       readonly address: CodecTypes['pg/text@1']['output'];
       readonly id: CodecTypes['pg/int4@1']['output'];
+      readonly isArchived: CodecTypes['pg/bool@1']['output'];
       readonly name: CodecTypes['pg/text@1']['output'];
       readonly notes: CodecTypes['pg/text@1']['output'] | null;
       readonly userId: CodecTypes['pg/text@1']['output'];
@@ -588,6 +591,7 @@ export type StorageColumnInputTypes = {
     readonly property: {
       readonly address: CodecTypes['pg/text@1']['input'];
       readonly id: CodecTypes['pg/int4@1']['input'];
+      readonly isArchived: CodecTypes['pg/bool@1']['input'];
       readonly name: CodecTypes['pg/text@1']['input'];
       readonly notes: CodecTypes['pg/text@1']['input'] | null;
       readonly userId: CodecTypes['pg/text@1']['input'];
@@ -1131,6 +1135,15 @@ type ContractBase = Omit<
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
                   readonly nullable: false;
+                };
+                readonly isArchived: {
+                  readonly nativeType: 'bool';
+                  readonly codecId: 'pg/bool@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/bool@1', false>;
+                  };
                 };
               };
               primaryKey: { readonly columns: readonly ['id'] };
@@ -1804,6 +1817,10 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
+              readonly isArchived: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/bool@1' };
+              };
             };
             readonly relations: {
               readonly expenses: {
@@ -1843,6 +1860,7 @@ type ContractBase = Omit<
                 readonly address: { readonly column: 'address' };
                 readonly notes: { readonly column: 'notes' };
                 readonly userId: { readonly column: 'userId' };
+                readonly isArchived: { readonly column: 'isArchived' };
               };
             };
           };

@@ -2,11 +2,11 @@ import { auth } from "@/lib/auth";
 import { db } from "@/prisma/db";
 import { headers } from "next/headers";
 
-function getTodayDate(){
+function getTodayDate() {
     const now = new Date();
-    return(
-        `${now.getFullYear()}-`+
-        `${String(now.getMonth()+1).padStart(2, "0")}-`+
+    return (
+        `${now.getFullYear()}-` +
+        `${String(now.getMonth() + 1).padStart(2, "0")}-` +
         `${String(now.getDate()).padStart(2, "0")}`
     );
 }
@@ -191,175 +191,184 @@ export async function GET(request: Request) {
     return Response.json(leases);
 }
 
-export async function POST(request:Request) {
-    const session= await auth.api.getSession({
+export async function POST(request: Request) {
+    const session = await auth.api.getSession({
         headers: await headers(),
     });
 
-    if(!session){
+    if (!session) {
         return Response.json(
-            {error: "Unauthorized"},
-            {status: 401}
+            { error: "Unauthorized" },
+            { status: 401 }
         );
     }
     const body = await request.json();
 
-    const tenantId= Number(body.tenantId);
-    const unitId= Number(body.unitId);
+    const tenantId = Number(body.tenantId);
+    const unitId = Number(body.unitId);
 
-    if(!tenantId || !unitId){
+    if (!tenantId || !unitId) {
         return Response.json(
-            {error: "tenantId and unitId is required"},
-            {status: 400}
+            { error: "tenantId and unitId is required" },
+            { status: 400 }
         );
     }
 
-    const tenant= await db.orm.public.Tenant
-    .where({
-        id: tenantId,
-        userId: session.user.id,
-    })
-    .first();
-    if(!tenant){
+    const tenant = await db.orm.public.Tenant
+        .where({
+            id: tenantId,
+            userId: session.user.id,
+        })
+        .first();
+    if (!tenant) {
         return Response.json(
-            {error: "Tenant not found"},
-            {status: 404}
+            { error: "Tenant not found" },
+            { status: 404 }
         );
     }
 
-    const unit= await db.orm.public.Unit
-    .where({
-        id: unitId,
-    })
-    .first();
-    if(!unit){
+    const unit = await db.orm.public.Unit
+        .where({
+            id: unitId,
+        })
+        .first();
+    if (!unit) {
         return Response.json(
-            {error: "Unit not found"},
-            {status: 404}
+            { error: "Unit not found" },
+            { status: 404 }
         );
     }
 
     const property = await db.orm.public.Property
-    .where({
-        id: unit.propertyId,
-        userId: session.user.id,
-    })
-    .first();
+        .where({
+            id: unit.propertyId,
+            userId: session.user.id,
+        })
+        .first();
 
-    if(!property){
+    if (!property) {
         return Response.json(
-            {error: "Unit not found"},
-            {status: 404},
+            { error: "Unit not found" },
+            { status: 404 },
         );
     }
-    if(!body.agreementStartsOn){
+    if (property.isArchived) {
         return Response.json(
-            {error: "Agreement start date is required"},
-            {status: 400},
+            {
+                error: "This property is archived. Restore it before creating a new lease.",
+                code: "PROPERTY_ARCHIVED",
+            },
+            { status: 409 }
+        );
+    }
+    if (!body.agreementStartsOn) {
+        return Response.json(
+            { error: "Agreement start date is required" },
+            { status: 400 },
         );
     }
     const newStart = String(body.agreementStartsOn).slice(0, 10);
-const newEnd = body.agreementEndsOn
-    ? String(body.agreementEndsOn).slice(0, 10)
-    : null;
+    const newEnd = body.agreementEndsOn
+        ? String(body.agreementEndsOn).slice(0, 10)
+        : null;
 
-if (
-    !/^\d{4}-\d{2}-\d{2}$/.test(newStart) ||
-    Number.isNaN(Date.parse(`${newStart}T00:00:00Z`))
-) {
-    return Response.json(
-        { error: "A valid agreement start date is required." },
-        { status: 400 }
-    );
-}
-
-if (
-    newEnd &&
-    (
-        !/^\d{4}-\d{2}-\d{2}$/.test(newEnd) ||
-        Number.isNaN(Date.parse(`${newEnd}T00:00:00Z`)) ||
-        newEnd <= newStart
-    )
-) {
-    return Response.json(
-        { error: "Agreement end date must be a valid date after the start date." },
-        { status: 400 }
-    );
-}
-    if(newEnd && newEnd <= newStart){
+    if (
+        !/^\d{4}-\d{2}-\d{2}$/.test(newStart) ||
+        Number.isNaN(Date.parse(`${newStart}T00:00:00Z`))
+    ) {
         return Response.json(
-            {error: "Agreement end date must be after the start date."},
-            {status: 400}
+            { error: "A valid agreement start date is required." },
+            { status: 400 }
         );
     }
-   const now = new Date();
 
-    const today =getTodayDate();
+    if (
+        newEnd &&
+        (
+            !/^\d{4}-\d{2}-\d{2}$/.test(newEnd) ||
+            Number.isNaN(Date.parse(`${newEnd}T00:00:00Z`)) ||
+            newEnd <= newStart
+        )
+    ) {
+        return Response.json(
+            { error: "Agreement end date must be a valid date after the start date." },
+            { status: 400 }
+        );
+    }
+    if (newEnd && newEnd <= newStart) {
+        return Response.json(
+            { error: "Agreement end date must be after the start date." },
+            { status: 400 }
+        );
+    }
+    const now = new Date();
+
+    const today = getTodayDate();
 
     const calculatedStatus =
         newStart > today
             ? "UPCOMING"
             : "ACTIVE";
-    if(Number(body.rent)<=0){
+    if (Number(body.rent) <= 0) {
         return Response.json(
-            {error: "Rent must be greater than 0"},
-            {status: 400},
+            { error: "Rent must be greater than 0" },
+            { status: 400 },
         );
     }
-    const securityDeposit= body.securityDeposit === undefined ||
+    const securityDeposit = body.securityDeposit === undefined ||
         body.securityDeposit === null ||
         body.securityDeposit === ""
-            ? 0
-            : Number(body.securityDeposit);
-    if(!Number.isInteger(securityDeposit)||
-        securityDeposit < 0){
+        ? 0
+        : Number(body.securityDeposit);
+    if (!Number.isInteger(securityDeposit) ||
+        securityDeposit < 0) {
         return Response.json(
-            {error: "Security Deposit cannot be negative"},
-            {status: 400}
+            { error: "Security Deposit cannot be negative" },
+            { status: 400 }
         );
     }
-   const existingLeases =
-    await db.orm.public.Lease
-        .where({
-            unitId,
-        })
-        .all();
+    const existingLeases =
+        await db.orm.public.Lease
+            .where({
+                unitId,
+            })
+            .all();
 
-for(const existingLease of existingLeases){
+    for (const existingLease of existingLeases) {
 
-    const existingStart =
-        existingLease.agreementStartsOn;
+        const existingStart =
+            existingLease.agreementStartsOn;
 
-    const existingEnd =
-        existingLease.agreementEndsOn;
+        const existingEnd =
+            existingLease.agreementEndsOn;
 
-    const existingStartDate =
-        existingStart.slice(0, 10);
+        const existingStartDate =
+            existingStart.slice(0, 10);
 
-    const existingEndDate =
-        existingEnd
-            ? existingEnd.slice(0, 10)
-            : null;
+        const existingEndDate =
+            existingEnd
+                ? existingEnd.slice(0, 10)
+                : null;
 
-    const overlaps =
-        (!newEnd ||
-            existingStartDate < newEnd) &&
-        (!existingEndDate ||
-            newStart < existingEndDate);
+        const overlaps =
+            (!newEnd ||
+                existingStartDate < newEnd) &&
+            (!existingEndDate ||
+                newStart < existingEndDate);
 
-    if(overlaps){
-        return Response.json(
-            {
-                error:
-                    "Lease dates overlap with an existing lease for this unit.",
-                conflictingLeaseId:
-                    existingLease.id,
-            },
-            {status: 400}
-        );
+        if (overlaps) {
+            return Response.json(
+                {
+                    error:
+                        "Lease dates overlap with an existing lease for this unit.",
+                    conflictingLeaseId:
+                        existingLease.id,
+                },
+                { status: 400 }
+            );
+        }
     }
-}
-    const lease= await db.orm.public.Lease.create({
+    const lease = await db.orm.public.Lease.create({
         tenantId,
         unitId,
         agreementStartsOn: body.agreementStartsOn,
@@ -368,67 +377,67 @@ for(const existingLease of existingLeases){
         securityDeposit: securityDeposit,
         status: calculatedStatus,
     });
-    if(calculatedStatus === "ACTIVE"){
-    await db.orm.public.Unit
-    .where({
-        id: unit.id,
-    })
-    .update({
-        status: "OCCUPIED",
-    });
-}
+    if (calculatedStatus === "ACTIVE") {
+        await db.orm.public.Unit
+            .where({
+                id: unit.id,
+            })
+            .update({
+                status: "OCCUPIED",
+            });
+    }
 
     return Response.json(lease);
 }
 
-export async function PATCH(request:Request) {
+export async function PATCH(request: Request) {
     const session = await auth.api.getSession({
-        headers : await headers(),
+        headers: await headers(),
     });
 
-    if(!session){
+    if (!session) {
         return Response.json(
-            {error: "Unauthorized"},
-            {status: 401}
+            { error: "Unauthorized" },
+            { status: 401 }
         );
     }
     const body = await request.json();
 
-    const leaseId= Number(body.leaseId);
+    const leaseId = Number(body.leaseId);
 
-    if(!leaseId){
+    if (!leaseId) {
         return Response.json(
-            {error: "leaseId is required"},
-            {status: 400}
+            { error: "leaseId is required" },
+            { status: 400 }
         );
     }
     const lease = await db.orm.public.Lease
-    .where({
-        id: leaseId,
-    })
-    .first();
+        .where({
+            id: leaseId,
+        })
+        .first();
 
-    if(!lease){
+    if (!lease) {
         return Response.json(
-            {error: "Lease not found"},
-            {status: 404},
+            { error: "Lease not found" },
+            { status: 404 },
         );
     }
 
     const tenant = await db.orm.public.Tenant
-    .where({
-        id: lease.tenantId,
-        userId: session.user.id,
-    })
-    .first();
+        .where({
+            id: lease.tenantId,
+            userId: session.user.id,
+        })
+        .first();
 
-    if(!tenant){
+    if (!tenant) {
         return Response.json(
-            {error: "Lease not found"},
-            {status: 404},
+            { error: "Lease not found" },
+            { status: 404 },
         );
     }
-  const unit = await db.orm.public.Unit
+    const unit = await db.orm.public.Unit
         .where({
             id: lease.unitId,
         })
@@ -441,111 +450,111 @@ export async function PATCH(request:Request) {
         );
     }
     const property = await db.orm.public.Property
-    .where({
-        id: unit.propertyId,
-        userId: session.user.id,
-    })
-    .first();
+        .where({
+            id: unit.propertyId,
+            userId: session.user.id,
+        })
+        .first();
 
-    if(!property){
+    if (!property) {
         return Response.json(
-            {error: "Lease not found"},
-            {status: 404},
+            { error: "Lease not found" },
+            { status: 404 },
         );
     }
-   const action = body.action;
-   if(action !=="END"&& action !== "EXTEND"){
-    return Response.json(
-        {error: "Invalid lease action"},
-        {status: 400},
-    );
-   }
-   if(action=== "EXTEND"){
-    if(lease.status=== "ENDED"){
+    const action = body.action;
+    if (action !== "END" && action !== "EXTEND") {
         return Response.json(
-            {error: "Cannot extend an ended lease"},
-            {status:400},
+            { error: "Invalid lease action" },
+            { status: 400 },
         );
     }
-    if(!body.agreementEndsOn){
-        return Response.json(
-            {error: "New agreement end date is required"},
-            {status: 400}
-        );
-    }
-    if(
-        lease.agreementEndsOn &&
-        body.agreementEndsOn <= lease.agreementEndsOn
-    ){
-        return Response.json(
-            {error: "New end date must be later than the current end date"},
-            {status: 400}
-        );
-    }
-    if(body.agreementEndsOn <= lease.agreementStartsOn){
-        return Response.json(
-            {error: "End date must be after the start date"},
-            {status: 400}
-        );
-    }
-    const existingLeases = await db.orm.public.Lease
-    .where({
-        unitId: lease.unitId,
-    })
-    .all();
-    for (const existingLease of existingLeases){
-        if(existingLease.id === lease.id){
-            continue;
-        }
-
-        const existingStart = existingLease.agreementStartsOn;
-        const existingEnd = existingLease.agreementEndsOn;
-
-        const overlaps =
-        (!body.agreementEndsOn || existingStart < body.agreementEndsOn)&&
-        (!existingEnd || lease.agreementStartsOn < existingEnd);
-
-        if(overlaps){
+    if (action === "EXTEND") {
+        if (lease.status === "ENDED") {
             return Response.json(
-                {
-                    error: "Lease dates overlap with an existing lease for this unit.",
-                    conflictingLeaseId: existingLease.id,
-                },
-                {status: 400}
+                { error: "Cannot extend an ended lease" },
+                { status: 400 },
             );
         }
+        if (!body.agreementEndsOn) {
+            return Response.json(
+                { error: "New agreement end date is required" },
+                { status: 400 }
+            );
+        }
+        if (
+            lease.agreementEndsOn &&
+            body.agreementEndsOn <= lease.agreementEndsOn
+        ) {
+            return Response.json(
+                { error: "New end date must be later than the current end date" },
+                { status: 400 }
+            );
+        }
+        if (body.agreementEndsOn <= lease.agreementStartsOn) {
+            return Response.json(
+                { error: "End date must be after the start date" },
+                { status: 400 }
+            );
+        }
+        const existingLeases = await db.orm.public.Lease
+            .where({
+                unitId: lease.unitId,
+            })
+            .all();
+        for (const existingLease of existingLeases) {
+            if (existingLease.id === lease.id) {
+                continue;
+            }
+
+            const existingStart = existingLease.agreementStartsOn;
+            const existingEnd = existingLease.agreementEndsOn;
+
+            const overlaps =
+                (!body.agreementEndsOn || existingStart < body.agreementEndsOn) &&
+                (!existingEnd || lease.agreementStartsOn < existingEnd);
+
+            if (overlaps) {
+                return Response.json(
+                    {
+                        error: "Lease dates overlap with an existing lease for this unit.",
+                        conflictingLeaseId: existingLease.id,
+                    },
+                    { status: 400 }
+                );
+            }
+        }
+        const updatedLease = await db.orm.public.Lease
+            .where({
+                id: leaseId,
+            })
+            .update({
+                agreementEndsOn: body.agreementEndsOn,
+            });
+        return Response.json(updatedLease);
     }
-    const updatedLease = await db.orm.public.Lease
-    .where({
-        id: leaseId,
-    })
-    .update({
-        agreementEndsOn: body.agreementEndsOn,
-    });
-    return Response.json(updatedLease);
-   }
-    if(lease.status === "ENDED"){
+    if (lease.status === "ENDED") {
         return Response.json(
-            {error: "Lease is already ended"},
-            {status: 400}
+            { error: "Lease is already ended" },
+            { status: 400 }
         );
     }
     await db.orm.public.Lease
-    .where({
-        id: leaseId,
-    })
-    .update({
-        status: "ENDED",
-        agreementEndsOn: new Date().toISOString(),
-    });
+        .where({
+            id: leaseId,
+        })
+        .update({
+            status: "ENDED",
+            agreementEndsOn: new Date().toISOString(),
+        });
 
     await db.orm.public.Unit
-    .where({
-        id: unit.id,
-    })
-    .update({
-        status: "VACANT",
-    });
+        .where({
+            id: unit.id,
+        })
+        .update({
+            status: "VACANT",
+        });
 
     return Response.json({
         success: true,
