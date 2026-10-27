@@ -36,22 +36,25 @@ export async function GET(request: Request) {
         properties.map((property) => property.id)
     );
 
-    const allUnits = await db.orm.public.Unit.all();
+    const units = propertyIds.size
+    ? await db.orm.public.Unit
+        .where((unit) => unit.propertyId.in([...propertyIds]))
+        .all()
+    : [];
 
-    const units = allUnits.filter((unit) =>
-        propertyIds.has(unit.propertyId) &&
-        (!unitId || unit.id === unitId)
-    );
+const filteredUnits = unitId
+    ? units.filter((unit) => unit.id === unitId)
+    : units;
 
     const unitIds = new Set(
-        units.map((unit) => unit.id)
+        filteredUnits.map((unit) => unit.id)
     );
 
-    const allLeases = await db.orm.public.Lease.all();
-
-    const unitLeases = allLeases.filter((lease) =>
-        unitIds.has(lease.unitId)
-    );
+    const unitLeases = unitIds.size
+    ? await db.orm.public.Lease
+        .where((lease) => lease.unitId.in([...unitIds]))
+        .all()
+    : [];
 
     const tenantIds = new Set(
         unitLeases.map((lease) => lease.tenantId)
@@ -75,11 +78,11 @@ export async function GET(request: Request) {
     );
 
     const unitMap = new Map(
-        units.map((unit) => [
-            unit.id,
-            unit,
-        ])
-    );
+    filteredUnits.map((unit) => [
+        unit.id,
+        unit,
+    ])
+);
 
     const tenantMap = new Map(
         tenants.map((tenant) => [
