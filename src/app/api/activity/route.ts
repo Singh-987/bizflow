@@ -59,21 +59,34 @@ export async function GET() {
             .all()
         : [];
     const leaseIds = new Set(ownedLeases.map((lease) => lease.id));
-    const [allPayments, allReadings, tenants] = await Promise.all([
+const [allPayments, allReadings, tenants, savedActivities, readRecords] =
+    await Promise.all([
         leaseIds.size
             ? db.orm.public.Payment
                 .where((payment) => payment.leaseId.in([...leaseIds]))
                 .all()
             : Promise.resolve([]),
+
         leaseIds.size
             ? db.orm.public.ElectricityReading
                 .where((reading) => reading.leaseId.in([...leaseIds]))
                 .all()
             : Promise.resolve([]),
+
         db.orm.public.Tenant.where({
             userId: session.user.id,
         }).all(),
+
+        db.orm.public.ActivityLog.where({
+            userId: session.user.id,
+        }).all(),
+
+        db.orm.public.NotificationRead.where({
+            userId: session.user.id,
+        }).all(),
     ]);
+
+
     const tenantMap = new Map(tenants.map((tenant) => [tenant.id, tenant]));
     const unitMap = new Map(ownedUnits.map((unit) => [unit.id, unit]));
     const leaseMap = new Map(ownedLeases.map((lease) => [lease.id, lease]));
@@ -86,11 +99,6 @@ export async function GET() {
         href: string;
         isRead: boolean;
     }[] = [];
-    const savedActivities = await db.orm.public.ActivityLog
-        .where({
-            userId: session.user.id,
-        })
-        .all();
     for (const log of savedActivities) {
         activity.push({
             id: `activity-log-${log.id}`,
@@ -318,13 +326,6 @@ export async function GET() {
             });
         }
     }
-
-    const readRecords = await db.orm.public.NotificationRead
-        .where({
-            userId: session.user.id,
-        })
-        .all();
-
     const readIds = new Set(
         readRecords.map((record) => record.activityId),
     );
