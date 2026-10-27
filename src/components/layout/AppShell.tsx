@@ -58,34 +58,34 @@ export default function AppShell({ children, }: {
     children: React.ReactNode;
 }) {
     const pathname = usePathname();
-    const [pendingPath, setPendingPath]= useState<string | null>(null);
+    const [pendingPath, setPendingPath] = useState<string | null>(null);
     const navigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     useEffect(() => {
-    setMobileMenuOpen(false);
-    setPendingPath(null);
-
-    if (navigationTimeoutRef.current) {
-        clearTimeout(navigationTimeoutRef.current);
-        navigationTimeoutRef.current = null;
-    }
-}, [pathname]);
-    const router = useRouter();
-   function handleNavigation(href: string) {
-    const destinationPath = href.split("?")[0].split("#")[0];
-
-    if (destinationPath === pathname) return;
-
-    setPendingPath(destinationPath);
-
-    if (navigationTimeoutRef.current) {
-        clearTimeout(navigationTimeoutRef.current);
-    }
-
-    navigationTimeoutRef.current = setTimeout(() => {
+        setMobileMenuOpen(false);
         setPendingPath(null);
-    }, 15000);
-}
-    const [authChecking, setAuthChecking]= useState(true);
+
+        if (navigationTimeoutRef.current) {
+            clearTimeout(navigationTimeoutRef.current);
+            navigationTimeoutRef.current = null;
+        }
+    }, [pathname]);
+    const router = useRouter();
+    function handleNavigation(href: string) {
+        const destinationPath = href.split("?")[0].split("#")[0];
+
+        if (destinationPath === pathname) return;
+
+        setPendingPath(destinationPath);
+
+        if (navigationTimeoutRef.current) {
+            clearTimeout(navigationTimeoutRef.current);
+        }
+
+        navigationTimeoutRef.current = setTimeout(() => {
+            setPendingPath(null);
+        }, 15000);
+    }
+    const [authChecking, setAuthChecking] = useState(true);
     const [search, setSearch] = useState("");
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -130,33 +130,33 @@ export default function AppShell({ children, }: {
         );
     }, []);
     useEffect(() => {
-    let cancelled = false;
+        let cancelled = false;
 
-    async function checkSession() {
-        try {
-            const result = await authclient.getSession();
+        async function checkSession() {
+            try {
+                const result = await authclient.getSession();
 
-            if (cancelled) return;
+                if (cancelled) return;
 
-            if (!result.data?.user) {
-                router.replace("/login");
-                return;
-            }
+                if (!result.data?.user) {
+                    router.replace("/login");
+                    return;
+                }
 
-            setAuthChecking(false);
-        } catch {
-            if (!cancelled) {
-                router.replace("/login");
+                setAuthChecking(false);
+            } catch {
+                if (!cancelled) {
+                    router.replace("/login");
+                }
             }
         }
-    }
 
-    checkSession();
+        checkSession();
 
-    return () => {
-        cancelled = true;
-    };
-}, [router]);
+        return () => {
+            cancelled = true;
+        };
+    }, [router]);
     useEffect(() => {
         const query = search.trim();
 
@@ -301,37 +301,37 @@ export default function AppShell({ children, }: {
     }
 
     async function logout() {
-    try {
-        const { error } = await authclient.signOut();
+        try {
+            const { error } = await authclient.signOut();
 
-        if (error) {
-            console.error("Logout failed:", error.message);
-            alert("Logout failed. Please try again.");
-            return;
+            if (error) {
+                console.error("Logout failed:", error.message);
+                alert("Logout failed. Please try again.");
+                return;
+            }
+
+            setSearch("");
+            setSearchResults([]);
+            setActivities([]);
+            setUnreadCount(0);
+            setShowNotifications(false);
+
+            router.replace("/login");
+            router.refresh();
+        } catch (error) {
+            console.error("Logout request failed:", error);
+            alert("Unable to log out. Please check your connection and try again.");
         }
-
-        setSearch("");
-        setSearchResults([]);
-        setActivities([]);
-        setUnreadCount(0);
-        setShowNotifications(false);
-
-        router.replace("/login");
-        router.refresh();
-    } catch (error) {
-        console.error("Logout request failed:", error);
-        alert("Unable to log out. Please check your connection and try again.");
     }
-}
-if (authChecking) {
-    return (
-        <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950">
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-                Checking session...
-            </p>
-        </div>
-    );
-}
+    if (authChecking) {
+        return (
+            <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950">
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                    Checking session...
+                </p>
+            </div>
+        );
+    }
     return (
         <div className="h-screen overflow-hidden bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
             <div className="flex h-full">
@@ -359,15 +359,15 @@ if (authChecking) {
                                         }`}
                                 >
                                     <span className="flex items-center justify-between gap-2">
-    {item.name}
-    {pendingPath === item.href && (
-        <span
-            className="h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent"
-            role="status"
-            aria-label={`Loading ${item.name}`}
-        />
-    )}
-</span>
+                                        {item.name}
+                                        {pendingPath === item.href && (
+                                            <span
+                                                className="h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent"
+                                                role="status"
+                                                aria-label={`Loading ${item.name}`}
+                                            />
+                                        )}
+                                    </span>
                                 </Link>
                             );
                         })}
@@ -379,15 +379,15 @@ if (authChecking) {
                             className="block rounded-lg px-4 py-3 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
                         >
                             <span className="flex items-center justify-between gap-2">
-    Settings
-    {pendingPath === "/settings" && (
-        <span
-            className="h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent"
-            role="status"
-            aria-label="Loading Settings"
-        />
-    )}
-</span>
+                                Settings
+                                {pendingPath === "/settings" && (
+                                    <span
+                                        className="h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent"
+                                        role="status"
+                                        aria-label="Loading Settings"
+                                    />
+                                )}
+                            </span>
                         </Link>
                     </div>
                 </aside>
@@ -460,22 +460,22 @@ if (authChecking) {
                                     {!searchLoading &&
                                         searchResults.map((result) => (
                                             <Link
-    key={`${result.type}-${result.id}`}
-    href={result.href}
-    onClick={(event) => {
-        event.preventDefault();
+                                                key={`${result.type}-${result.id}`}
+                                                href={result.href}
+                                                onClick={(event) => {
+                                                    event.preventDefault();
 
 
-    setSearch("");
-    setSearchResults([]);
+                                                    setSearch("");
+                                                    setSearchResults([]);
 
-    const destination = new URL(result.href, window.location.origin);
-    destination.searchParams.set("_highlightRun", crypto.randomUUID());
+                                                    const destination = new URL(result.href, window.location.origin);
+                                                    destination.searchParams.set("_highlightRun", crypto.randomUUID());
 
-    router.push(
-        `${destination.pathname}${destination.search}${destination.hash}`
-    );
-}}
+                                                    router.push(
+                                                        `${destination.pathname}${destination.search}${destination.hash}`
+                                                    );
+                                                }}
 
 
 
@@ -509,16 +509,16 @@ if (authChecking) {
                         <div className="absolute right-4 top-3 flex items-center gap-2 md:static md:gap-3">
                             <div ref={norificationRef} className="relative">
                                 <button
-    type="button"
-    aria-label="Notifications"
-    aria-expanded={showNotifications}
-    onClick={() =>
-        setShowNotifications(!showNotifications)
-    }
-    className="relative rounded-lg p-2 text-slate-600
+                                    type="button"
+                                    aria-label="Notifications"
+                                    aria-expanded={showNotifications}
+                                    onClick={() =>
+                                        setShowNotifications(!showNotifications)
+                                    }
+                                    className="relative rounded-lg p-2 text-slate-600
         hover:bg-slate-100 dark:text-slate-300
         dark:hover:bg-slate-800"
->
+                                >
                                     <Bell size={20} />
 
                                     {unreadCount > 0 && (
@@ -545,7 +545,7 @@ if (authChecking) {
     [@media(max-width:767px)]:left-2
     [@media(max-width:767px)]:top-16
     [@media(max-width:767px)]:w-auto"
->
+                                    >
                                         <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-700">
                                             <div className="flex items-center justify-between gap-2">
                                                 <h2 className="font-semibold text-slate-900 dark:text-white">
@@ -671,12 +671,12 @@ if (authChecking) {
 
                                                             setShowNotifications(false);
 
-const destination = new URL(item.href, window.location.origin);
-destination.searchParams.set("_highlightRun", String(Date.now()));
+                                                            const destination = new URL(item.href, window.location.origin);
+                                                            destination.searchParams.set("_highlightRun", String(Date.now()));
 
-router.push(
-    `${destination.pathname}${destination.search}${destination.hash}`
-);
+                                                            router.push(
+                                                                `${destination.pathname}${destination.search}${destination.hash}`
+                                                            );
                                                         }}
                                                         className={`block border-b border-slate-200 px-4 py-3 transition-colors hover:bg-blue-50 dark:border-slate-800 dark:hover:bg-slate-800 ${item.isRead
                                                             ? "opacity-70"
@@ -747,25 +747,25 @@ router.push(
                                             key={item.href}
                                             href={item.href}
                                             onClick={() => {
-    setMobileMenuOpen(false);
-    handleNavigation(item.href);
-}}
+                                                setMobileMenuOpen(false);
+                                                handleNavigation(item.href);
+                                            }}
                                             className={`mb-1 block rounded-lg px-4 py-3 text-sm font-medium transition ${active
                                                 ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900"
                                                 : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
                                                 }`}
                                         >
-    <span className="flex items-center justify-between gap-2">
-        {item.name}
-        {pendingPath === item.href && (
-            <span
-                className="h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent"
-                role="status"
-                aria-label={`Loading ${item.name}`}
-            />
-        )}
-    </span>
-</Link>
+                                            <span className="flex items-center justify-between gap-2">
+                                                {item.name}
+                                                {pendingPath === item.href && (
+                                                    <span
+                                                        className="h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent"
+                                                        role="status"
+                                                        aria-label={`Loading ${item.name}`}
+                                                    />
+                                                )}
+                                            </span>
+                                        </Link>
                                     );
                                 })}
 
@@ -775,15 +775,15 @@ router.push(
                                     className="mt-2 block rounded-lg border-t border-slate-200 px-4 py-3 text-sm font-medium text-slate-600 dark:border-slate-700 dark:text-slate-300"
                                 >
                                     <span className="flex items-center justify-between gap-2">
-    Settings
-    {pendingPath === "/settings" && (
-        <span
-            className="h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent"
-            role="status"
-            aria-label="Loading Settings"
-        />
-    )}
-</span>
+                                        Settings
+                                        {pendingPath === "/settings" && (
+                                            <span
+                                                className="h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent"
+                                                role="status"
+                                                aria-label="Loading Settings"
+                                            />
+                                        )}
+                                    </span>
                                 </Link>
 
                                 <button
@@ -798,8 +798,17 @@ router.push(
 
 
                     )}
-
-                    <main className="min-h-0 flex-1 overflow-y-auto p-4 md:p-6">
+                    <main className="relative min-h-0 flex-1 overflow-y-auto p-4 md:p-6">
+                        {pendingPath && (
+                            <div
+                                className="fixed left-1/2 top-3 z-50 flex -translate-x-1/2 items-center gap-3 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-lg dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 md:hidden"
+                                role="status"
+                                aria-live="polite"
+                            >
+                                <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent" />
+                                Loading {pendingPath === "/" ? "Dashboard" : pendingPath.slice(1).replace(/^./, (letter) => letter.toUpperCase())}…
+                            </div>
+                        )}
                         {children}
                     </main>
                 </div>
