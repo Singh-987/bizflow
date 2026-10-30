@@ -3,7 +3,7 @@
 Rentello is a complete rental management web application built to help landlords manage properties, units, tenant leases, and utility billing in one place.
 
 ## Live Demo
-Check out the live application:(https://rentello-omega.vercel.app/)
+Check out the live application: [rentello-omega.vercel.app](https://rentello-omega.vercel.app/)
 
 ## Features
 - **Property & Unit Management:** Add properties and manage units with rent and occupancy status.
