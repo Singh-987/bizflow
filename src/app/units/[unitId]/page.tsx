@@ -198,12 +198,20 @@ setUnitError("");
             />
             <main className="mx-auto w-full max-w-6xl space-y-6">
                 <button
-    type="button"
-    onClick={() => window.history.back()}
-    className="text-sm text-blue-600 hover:underline dark:text-blue-400"
+type="button"
+onClick={() => {
+window.location.href = `/properties/${unit.propertyId}/units`;
+}}
+className="text-sm text-blue-600 hover:underline dark:text-blue-400"
+
 >
-    ← Back
+
+
+← Back
+
+
 </button>
+
                 {routeParams?.startsWith("rent-") && (<div
                     className="mb-6 rounded-lg border border-amber-300 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950"
                 >

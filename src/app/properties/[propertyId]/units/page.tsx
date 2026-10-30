@@ -305,7 +305,7 @@ export default function Unit({
             <main className="mx-auto w-full max-w-6xl space-y-6">
                 <button
     type="button"
-    onClick={() => window.history.back()}
+    onClick={() => window.location.href=`/properties`}
     className="text-sm text-blue-600 hover:underline dark:text-blue-400"
 >
     ← Back
