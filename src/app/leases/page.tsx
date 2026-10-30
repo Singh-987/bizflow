@@ -10,6 +10,7 @@ import LeaseHighlight from "@/components/LeaseHighlight";
 import ElectricityBillHistory from "@/components/ElectricBillHistory";
 import { getPaymentsForUser } from "@/lib/data/payment";
 import { getLeasesForUser } from "@/lib/data/leases";
+import { formatDate } from "@/lib/utils";
 
 type Lease = {
     id: number;
@@ -290,7 +291,7 @@ export default async function LeasesPage({ searchParams, }: {
                                             </p>
 
                                             <p className="mt-1 font-semibold text-slate-900 dark:text-white">
-                                                {lease.agreementStartsOn}
+                                                {formatDate(lease.agreementStartsOn)}
                                             </p>
                                         </div>
 
@@ -300,7 +301,7 @@ export default async function LeasesPage({ searchParams, }: {
                                             </p>
 
                                             <p className="mt-1 font-semibold text-slate-900 dark:text-white">
-                                                {lease.agreementEndsOn ?? "Open-ended"}
+                                                {lease.agreementEndsOn ? formatDate(lease.agreementEndsOn) : "Open-ended"}
                                             </p>
                                         </div>
                                     </div>

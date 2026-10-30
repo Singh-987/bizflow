@@ -3,6 +3,7 @@ import LeaseHighlight from "@/components/LeaseHighlight";
 import PaymentsPageForm from "@/components/PaymentPageForm";
 import { auth } from "@/lib/auth";
 import { getPaymentsForUser } from "@/lib/data/payment";
+import { formatDate } from "@/lib/utils";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -109,7 +110,7 @@ const payments = await getPaymentsForUser(session.user.id);
 
                                     <div className="mt-3 grid gap-2 text-sm text-slate-500 dark:text-slate-400 sm:grid-cols-3">
                                         <p>Month: {item.payment.month}</p>
-                                        <p>Paid: {item.payment.paidOn}</p>
+                                        <p>Paid: {formatDate(item.payment.paidOn)}</p>
                                         <p>Method: {item.payment.method}</p>
                                     </div>
 
