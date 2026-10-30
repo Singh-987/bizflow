@@ -1,6 +1,7 @@
 "use client";
 
 import AppShell from "@/components/layout/AppShell";
+import { formatDate } from "@/lib/utils";
 import { useEffect, useState } from "react";
 
 type UnitFinancial = {
@@ -56,21 +57,6 @@ const formatCurrency = (amount: number | null | undefined) =>
         currency: "INR",
         maximumFractionDigits: 2,
     });
-
-const formatDate = (value: string) => {
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) {
-        return value;
-    }
-
-    return date.toLocaleDateString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        timeZone: "UTC",
-    });
-};
 
 const inputClass =
     "mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-blue-900";

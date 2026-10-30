@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDate } from "@/lib/utils";
 import { useEffect, useState } from "react";
 
 export default function DashboardContent() {
@@ -352,9 +353,7 @@ export default function DashboardContent() {
                                 <div>
                                     <p className="text-sm text-slate-500 dark:text-slate-400">Paid On</p>
                                     <p className="mt-1 text-sm text-slate-900 dark:text-slate-100">
-                                        {new Date(
-                                            item.payment.paidOn
-                                        ).toLocaleDateString()}
+                                        {formatDate(item.payment.paidOn)}
                                     </p>
                                 </div>
                             </div>
@@ -419,10 +418,8 @@ export default function DashboardContent() {
                                 </p>
                                 <p className="mt-1 text-sm text-slate-900 dark:text-slate-100">
                                     {lease.agreementEndsOn
-                                        ? new Date(
-                                            lease.agreementEndsOn
-                                        ).toLocaleDateString()
-                                        : "No end date"}
+    ? formatDate(lease.agreementEndsOn)
+    : "No end date"}
                                 </p>
                             </div>
                         </div>

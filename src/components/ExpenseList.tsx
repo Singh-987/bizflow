@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDate } from "@/lib/utils";
 import { useMemo, useState } from "react";
 
 type Expense = {
@@ -165,14 +166,7 @@ return [
                                         </p>
 
                                         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                                            {new Date(
-                                                item.date
-                                            ).toLocaleDateString("en-IN", {
-                                                day: "2-digit",
-                                                month: "short",
-                                                year: "numeric",
-                                                timeZone: "UTC",
-                                            })}
+                                            {formatDate(item.date)}
                                         </p>
                                     </div>
                                 </div>
