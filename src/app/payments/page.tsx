@@ -2,6 +2,7 @@ import AppShell from "@/components/layout/AppShell";
 import LeaseHighlight from "@/components/LeaseHighlight";
 import PaymentsPageForm from "@/components/PaymentPageForm";
 import { auth } from "@/lib/auth";
+import { getPaymentsForUser } from "@/lib/data/payment";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -18,22 +19,7 @@ export default async function PaymentsPage({searchParams,}:{
     }
 
    
-const requestHeaders = await headers();
-const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
-const protocol = requestHeaders.get("x-forwarded-proto") ?? "http";
-
-if (!host) {
-    throw new Error("Unable to determine request host");
-}
-
-const response = await fetch(`${protocol}://${host}/api/payments`, {
-    cache: "no-store",
-    headers: {
-        Cookie: requestHeaders.get("cookie") ?? "",
-    },
-});
-
-const payments = response.ok ? await response.json() : [];
+const payments = await getPaymentsForUser(session.user.id);
 
 
 

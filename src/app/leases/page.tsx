@@ -8,6 +8,8 @@ import PaymentHistory from "@/components/PaymentHistory";
 import AppShell from "@/components/layout/AppShell";
 import LeaseHighlight from "@/components/LeaseHighlight";
 import ElectricityBillHistory from "@/components/ElectricBillHistory";
+import { getPaymentsForUser } from "@/lib/data/payment";
+import { getLeasesForUser } from "@/lib/data/leases";
 
 type Lease = {
     id: number;
@@ -93,43 +95,54 @@ export default async function LeasesPage({ searchParams, }: {
     const leaseId = params.leaseId
         ? Number(params.leaseId)
         : null;
-        const action = params.action;
+    const action = params.action;
     const [leases, payments] = await Promise.all([
-getLeases(),
-getPayments(),
+    getLeasesForUser(session.user.id),
+    getPaymentsForUser(session.user.id),
 ]);
 
+    const paymentsByLease = new Map<number, typeof payments>();
 
+    for (const payment of payments) {
+        const leaseId = payment.lease.id;
+        const existing = paymentsByLease.get(leaseId);
+
+        if (existing) {
+            existing.push(payment);
+        } else {
+            paymentsByLease.set(leaseId, [payment]);
+        }
+    }
     return (
         <AppShell>
             <div>
-               <div className="mb-8">
-    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-        Leases
-    </h1>
-        {unitId && (
-    <a
-        href={`/units/${unitId}`}
-        className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
-    >
-        ← Back to Unit Details
-    </a>
-)}
+                <div className="mb-8">
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+                        Leases
+                    </h1>
+                    {unitId && (
+                        <a
+                            href={`/units/${unitId}`}
+                            className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
+                        >
+                            ← Back to Unit Details
+                        </a>
+                    )}
 
-    <p className="mt-2 text-slate-600 dark:text-slate-400">
-        Manage your active and previous rental agreements.
-    </p>
+                    <p className="mt-2 text-slate-600 dark:text-slate-400">
+                        Manage your active and previous rental agreements.
+                    </p>
 
-    <a
-        href="/leases/create"
-        className="mt-4 inline-flex items-center justify-center rounded-lg
+                    <a
+                        href="/leases/create"
+                        className="mt-4 inline-flex items-center justify-center rounded-lg
             bg-slate-900 px-4 py-2.5 text-sm font-medium text-white
             transition hover:bg-slate-800
             dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
-    >
-        + Create Lease
-    </a>
-</div>
+                    >
+                        + Create Lease
+                    </a>
+                </div>
 
                 {leases.length === 0 ? (
                     <div className="rounded-xl border border-slate-200 bg-white p-8 text-center dark:border-slate-700 dark:bg-slate-900">
@@ -181,76 +194,73 @@ getPayments(),
                                     className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-6"
                                 >
                                     <div className="flex flex-col gap-5">
-    {/* Tenant and lease status */}
-    <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
-        <div className="min-w-0">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-                {lease.tenant.name}
-            </h2>
+                                        {/* Tenant and lease status */}
+                                        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+                                            <div className="min-w-0">
+                                                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+                                                    {lease.tenant.name}
+                                                </h2>
 
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            {lease.tenant.phone}
-        </p>
+                                                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                                                    {lease.tenant.phone}
+                                                </p>
 
-        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-            {lease.property.name} · Unit {lease.unit.number}
-        </p>
-    </div>
+                                                <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                                                    {lease.property.name} · Unit {lease.unit.number}
+                                                </p>
+                                            </div>
 
-    <span className="w-fit rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-        {lease.status}
-    </span>
-</div>
+                                            <span className="w-fit rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                                                {lease.status}
+                                            </span>
+                                        </div>
 
-{/* Lease actions */}
-<div className="flex flex-wrap items-center gap-2">
-    <LeaseActions
-        leaseId={lease.id}
-        status={lease.status}
-    />
+                                        {/* Lease actions */}
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <LeaseActions
+                                                leaseId={lease.id}
+                                                status={lease.status}
+                                            />
 
-    {lease.status === "ACTIVE" && (
-        <>
-            <ElectricBill leaseId={String(lease.id)}
-                autoOpen={
-                    leaseId=== lease.id &&
-                    action === "electricity"
-                }
-            />
-            <PaymentForm leaseId={String(lease.id)}
-                autoOpen={
-                    leaseId === lease.id &&
-                    action === "payment"
-                }
-                embedded={false}
-            />
-        </>
-    )}
-</div>
+                                            {lease.status === "ACTIVE" && (
+                                                <>
+                                                    <ElectricBill leaseId={String(lease.id)}
+                                                        autoOpen={
+                                                            leaseId === lease.id &&
+                                                            action === "electricity"
+                                                        }
+                                                    />
+                                                    <PaymentForm leaseId={String(lease.id)}
+                                                        autoOpen={
+                                                            leaseId === lease.id &&
+                                                            action === "payment"
+                                                        }
+                                                        embedded={false}
+                                                    />
+                                                </>
+                                            )}
+                                        </div>
 
-{/* Payment history */}
-{lease.status === "ACTIVE" && (
-    <div
-        className="
+                                        {/* Payment history */}
+                                        {lease.status === "ACTIVE" && (
+                                            <div
+                                                className="
             grid min-w-0 grid-cols-1
             gap-4 xl:grid-cols-2
         "
-    >
-        <PaymentHistory
-            payments={payments.filter(
-                (item: any) =>
-                    item.lease.id === lease.id
-            )}
-        />
+                                            >
+                                                <PaymentHistory
+                                                    payments={paymentsByLease.get(lease.id) ?? []}
+                                                />
 
-        <ElectricityBillHistory
-            leaseId={String(lease.id)}
-        />
-    </div>
-)}
+                                                <ElectricityBillHistory
+                                                    leaseId={String(lease.id)}
+                                                />
+                                            </div>
+                                        )}
 
 
-</div>
+                                    </div>
 
 
                                     <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
