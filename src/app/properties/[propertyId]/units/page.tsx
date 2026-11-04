@@ -1,625 +1,377 @@
-"use client";
+import { auth } from "@/lib/auth";
+import { db } from "@/prisma/db";
+import { headers } from "next/headers";
 
-import AppShell from "@/components/layout/AppShell";
-import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
-
-type Unit = {
-    id: number;
-    number: number;
-    type: string;
-    rent: number;
-    status: string;
-    propertyId: number;
-};
-
-export default function Unit({
-    params,
-}: {
-    params: Promise<{ propertyId: string }>;
-}) {
-    const router = useRouter();
-
-    const [propertyId, setPropertyId] = useState<number | null>(null);
-    const [units, setUnits] = useState<Unit[]>([]);
-    const [number, setNumber] = useState("");
-    const [type, setType] = useState("");
-    const [rent, setRent] = useState("");
-    const [status, setStatus] = useState("VACANT");
-    const [loading, setLoading] = useState(false);
-    const [unitsLoading, setUnitsLoading] = useState(true);
-    const [loadError, setLoadError] = useState<string | null>(null);
-    const [propertyNotFound, setPropertyNotFound]= useState(false);
-    const [selectedUnitId, setSelectedUnitId] = useState<number | null>(null);
-
-    const resetForm = useCallback(() => {
-        setSelectedUnitId(null);
-        setNumber("");
-        setType("");
-        setRent("");
-        setStatus("VACANT");
-    }, []);
-
-    useEffect(() => {
-        let cancelled = false;
-
-        async function loadUnits() {
-            setUnitsLoading(true);
-            setLoadError(null);
-
-            try {
-                const { propertyId: propertyIdParam } = await params;
-                const id = Number(propertyIdParam);
-
-                if (!Number.isInteger(id) || id <= 0) {
-                    throw new Error("Invalid property ID.");
-                }
-
-                const response = await fetch(`/api/units?propertyId=${id}`);
-
-                if (!response.ok) {
-    if (response.status === 404) {
-        if (!cancelled) {
-            setPropertyNotFound(true);
-        }
-
-        throw new Error(
-            "This property could not be found. The link may be outdated, or the property may no longer exist."
-        );
-    }
-
-    if (response.status === 401) {
-        throw new Error("Your session has expired. Please log in again.");
-    }
-
-    throw new Error(
-        `Unable to load units (HTTP ${response.status}). Please try again.`
-    );
+function getLocalDateString(date: Date) {
+  return (
+    `${date.getFullYear()}-` +
+    `${String(date.getMonth() + 1).padStart(2, "0")}-` +
+    `${String(date.getDate()).padStart(2, "0")}`
+  );
 }
-                const data: unknown = await response.json();
 
-                if (!Array.isArray(data)) {
-                    throw new Error("The server returned an invalid units response.");
-                }
-
-                if (!cancelled) {
-                    setPropertyId(id);
-                    setUnits(data as Unit[]);
-                }
-            } catch (error) {
-                console.error("LOAD UNITS ERROR:", error);
-
-                if (!cancelled) {
-                    setLoadError(
-                        error instanceof Error
-                            ? error.message
-                            : "Something went wrong while loading units."
-                    );
-                }
-            } finally {
-                if (!cancelled) {
-                    setUnitsLoading(false);
-                }
-            }
-        }
-
-        loadUnits();
-
-        return () => {
-            cancelled = true;
-        };
-    }, [params]);
-
-    function validateForm(): boolean {
-        if (!number.trim()) {
-            alert("Unit number is required.");
-            return false;
-        }
-
-        if (!Number.isInteger(Number(number)) || Number(number) <= 0) {
-            alert("Unit number must be a positive whole number.");
-            return false;
-        }
-
-        if (!type.trim()) {
-            alert("Unit type is required.");
-            return false;
-        }
-
-        if (!rent.trim() || !Number.isFinite(Number(rent)) || Number(rent) <= 0) {
-            alert("Rent must be greater than 0.");
-            return false;
-        }
-
-        if (status !== "VACANT" && status !== "OCCUPIED") {
-            alert("Please select a valid occupancy status.");
-            return false;
-        }
-
-        return true;
-    }
-
-    async function createUnit() {
-        if (loading || !validateForm()) {
-            return;
-        }
-
-        if (propertyId === null) {
-            alert("Property information is still loading. Please try again.");
-            return;
-        }
-
-        setLoading(true);
-
-        try {
-            const response = await fetch("/api/units", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    number: Number(number),
-                    type: type.trim(),
-                    rent: Number(rent),
-                    status,
-                    propertyId,
-                }),
-            });
-
-            const text = await response.text();
-
-            if (!response.ok) {
-                alert(`Error ${response.status}: ${text || "Unable to create unit."}`);
-                return;
-            }
-
-            let unit: Unit;
-
-            try {
-                unit = JSON.parse(text) as Unit;
-            } catch {
-                alert("The server returned an invalid response after creating the unit.");
-                return;
-            }
-
-            setUnits((current) => [...current, unit]);
-            resetForm();
-        } catch (error) {
-            console.error("CREATE UNIT ERROR:", error);
-            alert("Something went wrong while creating the unit.");
-        } finally {
-            setLoading(false);
-        }
-    }
-
-    async function updateUnit() {
-        if (loading) {
-            return;
-        }
-
-        if (selectedUnitId === null) {
-            alert("Please select a unit to update.");
-            return;
-        }
-
-        if (!validateForm()) {
-            return;
-        }
-
-        setLoading(true);
-
-        try {
-            const response = await fetch("/api/units", {
-                method: "PATCH",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    unitId: selectedUnitId,
-                    number: Number(number),
-                    type: type.trim(),
-                    rent: Number(rent),
-                    status,
-                }),
-            });
-
-            const text = await response.text();
-
-            if (!response.ok) {
-                alert(`Error ${response.status}: ${text || "Unable to update unit."}`);
-                return;
-            }
-
-            let updatedUnit: Unit;
-
-            try {
-                updatedUnit = JSON.parse(text) as Unit;
-            } catch {
-                alert("The server returned an invalid response after updating the unit.");
-                return;
-            }
-
-            setUnits((current) =>
-                current.map((unit) =>
-                    unit.id === selectedUnitId
-                        ? {
-                              ...unit,
-                              number: updatedUnit.number,
-                              type: updatedUnit.type,
-                              rent: updatedUnit.rent,
-                              status: updatedUnit.status,
-                          }
-                        : unit
-                )
-            );
-
-            resetForm();
-        } catch (error) {
-            console.error("UPDATE UNIT ERROR:", error);
-            alert("Something went wrong while updating the unit.");
-        } finally {
-            setLoading(false);
-        }
-    }
-
-    async function deleteUnit(unitId: number) {
-        if (loading) {
-            return;
-        }
-
-        setLoading(true);
-
-        try {
-            const response = await fetch("/api/units", {
-                method: "DELETE",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ unitId }),
-            });
-
-            const text = await response.text();
-
-            if (!response.ok) {
-                alert(`Error ${response.status}: ${text || "Unable to delete unit."}`);
-                return;
-            }
-
-            setUnits((current) =>
-                current.filter((unit) => unit.id !== unitId)
-            );
-
-            if (selectedUnitId === unitId) {
-                resetForm();
-            }
-        } catch (error) {
-            console.error("DELETE UNIT ERROR:", error);
-            alert("Something went wrong while deleting the unit.");
-        } finally {
-            setLoading(false);
-        }
-    }
-
-    return (
-        <AppShell>
-            <main className="mx-auto w-full max-w-6xl space-y-6">
-                <button
-    type="button"
-    onClick={() => window.location.href=`/properties`}
-    className="text-sm text-blue-600 hover:underline dark:text-blue-400"
->
-    ← Back
-</button>
-                <header>
-                    <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-3xl">
-                        Property Units
-                    </h1>
-
-                    <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                        Manage the units, rental amounts, and occupancy status
-                        for this property.
-                    </p>
-
-                    <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                        Property ID: {propertyId ?? "Loading..."}
-                    </p>
-                </header>
-
-                <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-6">
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                        {selectedUnitId !== null ? "Edit Unit" : "Add a Unit"}
-                    </h2>
-
-                    <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                        {selectedUnitId !== null
-                            ? "Update the details for this unit."
-                            : "Enter the unit number, type, rent, and occupancy status."}
-                    </p>
-
-                    <form
-                        className="mt-4"
-                        onSubmit={(event) => {
-                            event.preventDefault();
-
-                            if (selectedUnitId !== null) {
-                                updateUnit();
-                            } else {
-                                createUnit();
-                            }
-                        }}
-                    >
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                            <div>
-                                <label
-                                    htmlFor="unit-number"
-                                    className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
-                                >
-                                    Unit number
-                                </label>
-
-                                <input
-                                    id="unit-number"
-                                    type="number"
-                                    min="1"
-                                    step="1"
-                                    required
-                                    placeholder="e.g. 101"
-                                    value={number}
-                                    disabled={loading}
-                                    onChange={(event) =>
-                                        setNumber(event.target.value)
-                                    }
-                                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-                                />
-                            </div>
-
-                            <div>
-                                <label
-                                    htmlFor="unit-type"
-                                    className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
-                                >
-                                    Unit type
-                                </label>
-
-                                <input
-                                    id="unit-type"
-                                    type="text"
-                                    required
-                                    maxLength={100}
-                                    placeholder="e.g. 2 BHK, Shop, Office"
-                                    value={type}
-                                    disabled={loading}
-                                    onChange={(event) =>
-                                        setType(event.target.value)
-                                    }
-                                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-                                />
-                            </div>
-
-                            <div>
-                                <label
-                                    htmlFor="unit-rent"
-                                    className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
-                                >
-                                    Monthly rent (₹)
-                                </label>
-
-                                <input
-                                    id="unit-rent"
-                                    type="number"
-                                    min="0.01"
-                                    step="0.01"
-                                    required
-                                    placeholder="Enter monthly rent"
-                                    value={rent}
-                                    disabled={loading}
-                                    onChange={(event) =>
-                                        setRent(event.target.value)
-                                    }
-                                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-                                />
-                            </div>
-
-                            <div>
-                                <label
-                                    htmlFor="unit-status"
-                                    className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
-                                >
-                                    Occupancy status
-                                </label>
-
-                                <select
-                                    id="unit-status"
-                                    value={status}
-                                    disabled={loading}
-                                    onChange={(event) =>
-                                        setStatus(event.target.value)
-                                    }
-                                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-                                >
-                                    <option value="VACANT">Vacant</option>
-                                    <option value="OCCUPIED">Occupied</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div className="mt-4 flex flex-wrap gap-3">
-                            <button
-                                type="submit"
-                                disabled={loading || propertyId === null}
-                                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-                            >
-                                {loading
-                                    ? "Saving..."
-                                    : selectedUnitId !== null
-                                      ? "Update Unit"
-                                      : "Add Unit"}
-                            </button>
-
-                            {selectedUnitId !== null && (
-                                <button
-                                    type="button"
-                                    disabled={loading}
-                                    onClick={resetForm}
-                                    className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100 disabled:opacity-60 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
-                                >
-                                    Cancel Edit
-                                </button>
-                            )}
-                        </div>
-                    </form>
-                </section>
-
-                <section className="space-y-4">
-                    <div className="flex items-center justify-between gap-3">
-                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                            Existing Units
-                        </h2>
-
-                        <span className="shrink-0 rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-600 dark:bg-gray-800 dark:text-gray-300">
-                            {units.length}{" "}
-                            {units.length === 1 ? "unit" : "units"}
-                        </span>
-                    </div>
-
-                    {unitsLoading ? (
-                        <div
-                            className="rounded-xl border border-gray-200 px-4 py-10 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400"
-                            role="status"
-                        >
-                            Loading units...
-                        </div>
-                    ) : loadError ? (
-    <div
-        className="rounded-xl border border-red-200 bg-red-50 px-4 py-6 text-center dark:border-red-900 dark:bg-red-950/30"
-        role="alert"
-    >
-        <h3 className="font-semibold text-red-800 dark:text-red-300">
-            {propertyNotFound
-                ? "Property not found"
-                : "Unable to load units"}
-        </h3>
-
-        <p className="mt-2 text-sm text-red-700 dark:text-red-300">
-            {loadError}
-        </p>
-
-        <button
-            type="button"
-            onClick={() => router.push("/properties")}
-            className="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-            Back to Properties
-        </button>
-    </div>
-                    ) : units.length === 0 ? (
-                        <div className="rounded-xl border border-dashed border-gray-300 px-4 py-10 text-center dark:border-gray-700">
-                            <h3 className="font-medium text-gray-900 dark:text-white">
-                                No units yet
-                            </h3>
-
-                            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                                Add the first unit for this property using the
-                                form above.
-                            </p>
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                            {units.map((unit) => (
-                                <article
-                                    key={unit.id}
-                                    className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800"
-                                >
-                                    <div className="flex items-start justify-between gap-3">
-                                        <div className="min-w-0">
-                                            <h3 className="break-words text-lg font-semibold text-gray-900 dark:text-white">
-                                                Unit {unit.number}
-                                            </h3>
-
-                                            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                                                {unit.type}
-                                            </p>
-                                        </div>
-
-                                        <span
-                                            className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${
-                                                unit.status === "VACANT"
-                                                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
-                                                    : "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
-                                            }`}
-                                        >
-                                            {unit.status === "VACANT"
-                                                ? "Vacant"
-                                                : "Occupied"}
-                                        </span>
-                                    </div>
-
-                                    <div className="mt-4 border-t border-gray-100 pt-4 dark:border-gray-700">
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                                            Monthly rent
-                                        </p>
-
-                                        <p className="mt-1 text-xl font-bold text-gray-900 dark:text-white">
-                                            ₹
-                                            {Number(unit.rent).toLocaleString(
-                                                "en-IN"
-                                            )}
-                                            <span className="ml-1 text-sm font-normal text-gray-500 dark:text-gray-400">
-                                                /month
-                                            </span>
-                                        </p>
-                                    </div>
-
-                                    <div className="mt-4 flex flex-wrap gap-2">
-                                        <button
-                                            type="button"
-                                            disabled={loading}
-                                            onClick={() => {
-                                                setSelectedUnitId(unit.id);
-                                                setNumber(String(unit.number));
-                                                setType(unit.type);
-                                                setRent(String(unit.rent));
-                                                setStatus(unit.status);
-                                            }}
-                                            className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
-                                        >
-                                            Edit
-                                        </button>
-
-                                        <button
-                                            type="button"
-                                            disabled={loading}
-                                            onClick={() => {
-                                                const confirmed =
-                                                    window.confirm(
-                                                        `Are you sure you want to delete unit "${unit.number}"?`
-                                                    );
-
-                                                if (confirmed) {
-                                                    void deleteUnit(unit.id);
-                                                }
-                                            }}
-                                            className="rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950"
-                                        >
-                                            Delete
-                                        </button>
-
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                router.push(`/units/${unit.id}`)
-                                            }
-                                            className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
-                                        >
-                                            View Unit →
-                                        </button>
-                                    </div>
-                                </article>
-                            ))}
-                        </div>
-                    )}
-                </section>
-            </main>
-        </AppShell>
+function getRentDueDate(
+  leaseStart: string,
+  year: number,
+  month: number
+) {
+  const startDay = Number(leaseStart.slice(8, 10));
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  const dueDay = Math.min(startDay, lastDay);
+
+  return (
+    `${year}-` +
+    `${String(month + 1).padStart(2, "0")}-` +
+    `${String(dueDay).padStart(2, "0")}`
+  );
+}
+
+export async function GET() {
+  const startedAt = performance.now();
+  const timings: Record<string, number> = {};
+
+  const mark = (name: string, start: number) => {
+    timings[name] = Math.round(performance.now() - start);
+  };
+
+  let stepStartedAt = performance.now();
+
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  mark("session", stepStartedAt);
+
+  if (!session) {
+    return Response.json(
+      { error: "Unauthorized" },
+      { status: 401 }
     );
+  }
+
+  const userId = session.user.id;
+
+  // --------------------------------------------------------------------------
+  // STEP 1: Fetch all user-scoped data + properties concurrently (1 Round Trip)
+  // --------------------------------------------------------------------------
+  stepStartedAt = performance.now();
+  const [properties, tenants, savedActivities, readRecords] =
+    await Promise.all([
+      db.orm.public.Property.where({ userId }).all(),
+      db.orm.public.Tenant.where({ userId }).all(),
+      db.orm.public.ActivityLog.where({ userId }).all(),
+      db.orm.public.NotificationRead.where({ userId }).all(),
+    ]);
+  mark("initialData", stepStartedAt);
+
+  if (!properties.length) {
+    timings.total = Math.round(performance.now() - startedAt);
+    return Response.json({ activity: [], unreadCount: 0 });
+  }
+
+  const propertyIds = properties.map((p) => p.id);
+  const propertyMap = new Map(properties.map((p) => [p.id, p]));
+  const tenantMap = new Map(tenants.map((t) => [t.id, t]));
+
+  // --------------------------------------------------------------------------
+  // STEP 2: Fetch Units for Properties (1 Round Trip)
+  // --------------------------------------------------------------------------
+  stepStartedAt = performance.now();
+  const ownedUnits = await db.orm.public.Unit.where((unit) =>
+    unit.propertyId.in(propertyIds)
+  ).all();
+  mark("units", stepStartedAt);
+
+  if (!ownedUnits.length) {
+    timings.total = Math.round(performance.now() - startedAt);
+    return Response.json({ activity: [], unreadCount: 0 });
+  }
+
+  const unitIds = ownedUnits.map((u) => u.id);
+  const unitMap = new Map(ownedUnits.map((u) => [u.id, u]));
+
+  // --------------------------------------------------------------------------
+  // STEP 3: Fetch Leases for Units (1 Round Trip)
+  // --------------------------------------------------------------------------
+  stepStartedAt = performance.now();
+  const ownedLeases = await db.orm.public.Lease.where((lease) =>
+    lease.unitId.in(unitIds)
+  ).all();
+  mark("leases", stepStartedAt);
+
+  const leaseIds = ownedLeases.map((l) => l.id);
+  const leaseMap = new Map(ownedLeases.map((l) => [l.id, l]));
+
+  // --------------------------------------------------------------------------
+  // STEP 4: Fetch Payments and Readings in parallel (1 Round Trip)
+  // --------------------------------------------------------------------------
+  stepStartedAt = performance.now();
+  const [allPayments, allReadings] = await Promise.all([
+    leaseIds.length
+      ? db.orm.public.Payment.where((payment) =>
+          payment.leaseId.in(leaseIds)
+        ).all()
+      : Promise.resolve([]),
+    leaseIds.length
+      ? db.orm.public.ElectricityReading.where((reading: any) =>
+          reading.leaseId.in(leaseIds)
+        ).all()
+      : Promise.resolve([]),
+  ]);
+  mark("parallelQueries", stepStartedAt);
+
+  // --------------------------------------------------------------------------
+  // IN-MEMORY ACTIVITY MAPPING (Zero DB time)
+  // --------------------------------------------------------------------------
+  const activity: {
+    id: string;
+    type: string;
+    title: string;
+    description: string;
+    createdAt: string;
+    href: string;
+    isRead: boolean;
+  }[] = [];
+
+  // 1. Saved activity logs
+  for (const log of savedActivities) {
+    activity.push({
+      id: `activity-log-${log.id}`,
+      type: log.entityType,
+      title: log.title,
+      description: log.description,
+      createdAt: new Date(log.createdAt).toISOString(),
+      href: log.href ?? "/dashboard",
+      isRead: false,
+    });
+  }
+
+  // 2. Payments activity
+  for (const payment of allPayments) {
+    const lease = leaseMap.get(payment.leaseId);
+    if (!lease) continue;
+
+    const unit = unitMap.get(lease.unitId);
+    if (!unit) continue;
+
+    const property = propertyMap.get(unit.propertyId);
+    const tenant = tenantMap.get(lease.tenantId);
+    if (!property || !tenant) continue;
+
+    activity.push({
+      id: `payment-${payment.id}`,
+      type: "PAYMENT",
+      title: `${payment.type} payment recorded`,
+      description:
+        `${tenant.name} · ${property.name} · ` +
+        `Unit ${unit.number} · ₹${payment.amount}`,
+      createdAt: new Date(payment.createdAt).toISOString(),
+      href: `/payments?highlight=payment-${payment.id}`,
+      isRead: false,
+    });
+  }
+
+  // 3. Electricity readings
+  for (const reading of allReadings) {
+    const lease = leaseMap.get(reading.leaseId);
+    if (!lease) continue;
+
+    const unit = unitMap.get(lease.unitId);
+    if (!unit) continue;
+
+    const property = propertyMap.get(unit.propertyId);
+    if (!property) continue;
+
+    activity.push({
+      id: `electricity-${reading.id}`,
+      type: "ELECTRICITY",
+      title: "Electricity reading recorded",
+      description:
+        `${property.name} · Unit ${unit.number} · ` +
+        `${reading.unitsUsed} units · ` +
+        `₹${reading.electricityBill}`,
+      createdAt: new Date(reading.createdAt).toISOString(),
+      href: `/units/${unit.id}?highlight=electricity-${reading.id}`,
+      isRead: false,
+    });
+  }
+
+  // 4. Rent Reminders
+  const rentPaidByLeaseMonth = new Map<string, number>();
+  for (const payment of allPayments) {
+    if (payment.type !== "RENT") continue;
+    const key = `${payment.leaseId}-${payment.month}`;
+    rentPaidByLeaseMonth.set(
+      key,
+      (rentPaidByLeaseMonth.get(key) ?? 0) + Number(payment.amount)
+    );
+  }
+
+  const today = getLocalDateString(new Date());
+  const now = new Date();
+  const upcomingLimit = new Date(now);
+  upcomingLimit.setDate(upcomingLimit.getDate() + 7);
+  const upcomingLimitString = getLocalDateString(upcomingLimit);
+
+  const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+  const sixMonthsAgoString = getLocalDateString(sixMonthsAgo);
+
+  for (const lease of ownedLeases) {
+    if (lease.status !== "ACTIVE") continue;
+
+    const leaseStart = String(lease.agreementStartsOn).slice(0, 10);
+    const leaseEnd = lease.agreementEndsOn
+      ? String(lease.agreementEndsOn).slice(0, 10)
+      : null;
+
+    if (leaseStart > today) continue;
+    if (leaseEnd && leaseEnd < today) continue;
+
+    const effectiveStart =
+      leaseStart > sixMonthsAgoString ? leaseStart : sixMonthsAgoString;
+
+    const startDate = new Date(`${effectiveStart}T12:00:00`);
+    const currentDate = new Date(`${today}T12:00:00`);
+
+    let year = startDate.getFullYear();
+    let month = startDate.getMonth();
+
+    while (
+      year < currentDate.getFullYear() ||
+      (year === currentDate.getFullYear() && month <= currentDate.getMonth())
+    ) {
+      const monthKey = `${year}-${String(month + 1).padStart(2, "0")}`;
+      const dueDate = getRentDueDate(leaseStart, year, month);
+
+      if (
+        (!leaseEnd || dueDate <= leaseEnd) &&
+        dueDate <= upcomingLimitString
+      ) {
+        const paidAmount =
+          rentPaidByLeaseMonth.get(`${lease.id}-${monthKey}`) ?? 0;
+
+        const balance = Math.max(
+          0,
+          Number(lease.rent) - paidAmount
+        );
+
+        if (balance > 0 && dueDate <= upcomingLimitString) {
+          const isOverdue = dueDate < today;
+          const unit = unitMap.get(lease.unitId);
+          const tenant = tenantMap.get(lease.tenantId);
+          const property = unit
+            ? propertyMap.get(unit.propertyId)
+            : null;
+
+          if (unit && tenant && property) {
+            activity.push({
+              id: `rent-${lease.id}-${monthKey}`,
+              type: isOverdue ? "OVERDUE" : "UPCOMING",
+              title: isOverdue
+                ? "Rent payment overdue"
+                : "Rent payment upcoming",
+              description:
+                `${tenant.name} · ${property.name} · ` +
+                `Unit ${unit.number} · ` +
+                `₹${balance.toLocaleString("en-IN")} outstanding · ` +
+                `Due ${dueDate}`,
+              createdAt: new Date().toISOString(),
+              href: `/units/${unit.id}?highlight=rent-${lease.id}-${monthKey}`,
+              isRead: false,
+            });
+          }
+        }
+      }
+
+      month++;
+      if (month > 11) {
+        month = 0;
+        year++;
+      }
+    }
+  }
+
+  // 5. Lease Start / Expiry Reminders
+  for (const lease of ownedLeases) {
+    const leaseStart = String(lease.agreementStartsOn).slice(0, 10);
+    const leaseEnd = lease.agreementEndsOn
+      ? String(lease.agreementEndsOn).slice(0, 10)
+      : null;
+
+    const unit = unitMap.get(lease.unitId);
+    const tenant = tenantMap.get(lease.tenantId);
+    const property = unit
+      ? propertyMap.get(unit.propertyId)
+      : null;
+
+    if (!unit || !tenant || !property) continue;
+
+    if (
+      lease.status === "UPCOMING" &&
+      leaseStart >= today &&
+      leaseStart <= upcomingLimitString
+    ) {
+      activity.push({
+        id: `lease-start-${lease.id}`,
+        type: "UPCOMING",
+        title: "Lease starting soon",
+        description:
+          `${tenant.name} · ${property.name} · ` +
+          `Unit ${unit.number} · Starts ${leaseStart}`,
+        createdAt: new Date().toISOString(),
+        href: `/leases?leaseId=${lease.id}`,
+        isRead: false,
+      });
+    }
+
+    if (
+      lease.status === "ACTIVE" &&
+      leaseEnd &&
+      leaseEnd >= today &&
+      leaseEnd <= upcomingLimitString
+    ) {
+      activity.push({
+        id: `lease-expiry-${lease.id}`,
+        type: "UPCOMING",
+        title: "Lease expiring soon",
+        description:
+          `${tenant.name} · ${property.name} · ` +
+          `Unit ${unit.number} · Ends ${leaseEnd}`,
+        createdAt: new Date().toISOString(),
+        href: `/leases?leaseId=${lease.id}`,
+        isRead: false,
+      });
+    }
+  }
+
+  const readIds = new Set(
+    readRecords.map((record) => record.activityId)
+  );
+
+  const activityWithReadStatus = activity.map((item) => ({
+    ...item,
+    isRead: readIds.has(item.id),
+  }));
+
+  activityWithReadStatus.sort((a, b) => {
+    if (a.isRead !== b.isRead) {
+      return a.isRead ? 1 : -1;
+    }
+    return (
+      new Date(b.createdAt).getTime() -
+      new Date(a.createdAt).getTime()
+    );
+  });
+
+  const unreadCount = activityWithReadStatus.filter(
+    (item) => !item.isRead
+  ).length;
+
+  timings.total = Math.round(performance.now() - startedAt);
+  console.log("[Activity API timings]", timings);
+
+  return Response.json({
+    activity: activityWithReadStatus.slice(0, 20),
+    unreadCount,
+  });
 }
