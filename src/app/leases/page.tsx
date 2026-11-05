@@ -128,10 +128,10 @@ export default async function LeasesPage({
           </div>
         ) : (
           <div className="space-y-4">
-            <LeaseHighlight
-              targetId={leaseId ? `lease-${leaseId}` : null}
-              redirectTo="/leases"
-            />
+  <LeaseHighlight
+    targetId={leaseId ? `lease-${leaseId}` : null}
+    redirectTo={unitId ? `/leases?unitId=${unitId}` : "/leases"}
+  />
             {[...leases]
   .sort((a, b) => {
     const statusOrder: Record<string, number> = {
