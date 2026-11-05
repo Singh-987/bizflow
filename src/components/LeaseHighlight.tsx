@@ -1,92 +1,106 @@
 "use client";
 
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef } from "react";
 
 export default function LeaseHighlight({
-targetId,
-redirectTo,
+  targetId,
+  redirectTo,
 }: {
-targetId: string | null;
-redirectTo?: string;
+  targetId: string | null;
+  redirectTo?: string;
 }) {
-const searchParams = useSearchParams();
-const pathname = usePathname();
-const urlHighlight = searchParams.get("highlight");
-const effectiveTargetId = urlHighlight || targetId;
-const navigationKey = searchParams.toString();
-const previousRun = useRef(0);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
 
+  const urlHighlight = searchParams.get("highlight");
+  const nonce = searchParams.get("_hNonce") || searchParams.get("_highlightRun") || "";
+  const effectiveTargetId = urlHighlight || targetId;
 
-useEffect(() => {
+  const previousRun = useRef(0);
+  const activeElementRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
     if (!effectiveTargetId) return;
 
-    const runId = ++previousRun.current;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    let highlightTimer: ReturnType<typeof setTimeout> | undefined;
+    // Increment run ID so previous retry loops are immediately invalidated
+    const currentRun = ++previousRun.current;
+
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    let fadeTimer: ReturnType<typeof setTimeout> | undefined;
     let attempts = 0;
-    let highlightedElement: HTMLElement | null = null;
 
-    const removeHighlight = () => {
-        highlightedElement?.classList.remove(
-            "ring-2",
-            "ring-blue-500",
-            "ring-offset-2"
-        );
-    };
+    const ringClasses = [
+      "ring-4",
+      "ring-blue-500",
+      "ring-offset-2",
+      "dark:ring-offset-slate-900",
+      "transition-all",
+      "duration-300",
+    ];
 
-    const findTarget = () => {
-        if (runId !== previousRun.current) return;
+    // Clean up any lingering ring from a prior click
+    if (activeElementRef.current) {
+      activeElementRef.current.classList.remove(...ringClasses);
+      activeElementRef.current = null;
+    }
 
-        const element = document.getElementById(effectiveTargetId);
+    const triggerHighlight = () => {
+      // Abort if another click/search happened in the meantime
+      if (currentRun !== previousRun.current) return;
 
-        if (!element) {
-            attempts++;
+      const targetStr = String(effectiveTargetId);
+      const element =
+        document.getElementById(targetStr) ||
+        document.getElementById(`payment-${targetStr}`) ||
+        document.getElementById(`expense-${targetStr}`) ||
+        document.getElementById(`lease-${targetStr}`) ||
+        document.getElementById(`unit-${targetStr}`);
 
-            if (attempts < 30) {
-                timer = setTimeout(findTarget, 200);
-            }
-
-            return;
+      if (!element) {
+        attempts++;
+        if (attempts < 30) {
+          retryTimer = setTimeout(triggerHighlight, 150);
         }
+        return;
+      }
 
-        highlightedElement = element;
+      activeElementRef.current = element;
 
-        element.scrollIntoView({
-            behavior: "smooth",
-            block: "center",
-        });
+      // Bring smoothly into view
+      element.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
 
-        element.classList.remove(
-            "ring-2",
-            "ring-blue-500",
-            "ring-offset-2"
-        );
+      // Strip first, trigger browser reflow, then apply ring to force animation restart
+      element.classList.remove(...ringClasses);
+      void element.offsetWidth;
+      element.classList.add(...ringClasses);
 
-        // Force the browser to apply the cleared state before re-highlighting.
-        void element.offsetWidth;
+      fadeTimer = setTimeout(() => {
+        if (currentRun === previousRun.current) {
+          element.classList.remove(...ringClasses);
+          activeElementRef.current = null;
 
-        element.classList.add(
-            "ring-2",
-            "ring-blue-500",
-            "ring-offset-2"
-        );
-
-        highlightTimer = setTimeout(() => {
-            removeHighlight();
-        }, 2500);
+          if (redirectTo) {
+            router.replace(redirectTo);
+          }
+        }
+      }, 2500);
     };
 
-    findTarget();
+    triggerHighlight();
 
     return () => {
-        if (timer) clearTimeout(timer);
-        if (highlightTimer) clearTimeout(highlightTimer);
-        removeHighlight();
+      if (retryTimer) clearTimeout(retryTimer);
+      if (fadeTimer) clearTimeout(fadeTimer);
+      if (activeElementRef.current) {
+        activeElementRef.current.classList.remove(...ringClasses);
+      }
     };
-}, [effectiveTargetId, pathname, navigationKey, redirectTo]);
+  }, [effectiveTargetId, nonce, pathname, redirectTo, router]);
 
-return null;
-
-
+  return null;
 }

@@ -25,7 +25,6 @@ export default function ElectricityBillHistory({
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Only refetch if an update event fires from the form
     async function refreshBills() {
       setLoading(true);
       try {
@@ -33,7 +32,8 @@ export default function ElectricityBillHistory({
         if (!response.ok) throw new Error("Failed to load bills.");
         const electricity = await response.json();
         const lease = electricity.find(
-          (item: any) => String(item.lease?.id ?? item.leaseId) === String(leaseId)
+          (item: any) =>
+            String(item.lease?.id ?? item.leaseId) === String(leaseId)
         );
         const sortedBills = [...(lease?.bills ?? [])].sort((a, b) =>
           b.month.localeCompare(a.month)
@@ -62,79 +62,90 @@ export default function ElectricityBillHistory({
   const visibleBills = showAll ? bills : bills.slice(0, 1);
 
   return (
-    <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+    <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-6">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3 dark:border-slate-800">
         <div>
-          <h3 className="font-semibold text-slate-900 dark:text-white">
+          <h3 className="text-base font-semibold text-slate-900 dark:text-white">
             Electricity Bill History
           </h3>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            {bills.length} bill(s) recorded
+          <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+            {bills.length} {bills.length === 1 ? "bill" : "bills"} recorded
           </p>
         </div>
+
         {bills.length > 1 && (
           <button
             type="button"
             onClick={() => setShowAll((current) => !current)}
             aria-expanded={showAll}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+            className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 active:scale-[0.98] dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
           >
-            {showAll ? "Show Less" : "View All"}
+            {showAll ? "Show Recent" : `View All (${bills.length})`}
           </button>
         )}
       </div>
 
       {loading ? (
-        <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">
-          Refreshing electricity bills...
-        </p>
+        <div className="mt-4 space-y-2">
+          {[1, 2].map((n) => (
+            <div
+              key={n}
+              className="h-11 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800"
+            />
+          ))}
+        </div>
       ) : bills.length === 0 ? (
-        <p className="mt-4 rounded-lg border border-dashed border-slate-300 p-4 text-sm text-slate-500 dark:border-slate-600 dark:text-slate-400">
-          No electricity bills recorded yet.
-        </p>
+        <div className="mt-4 rounded-xl border border-dashed border-slate-300 p-6 text-center dark:border-slate-800">
+          <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+            No electricity bills recorded yet
+          </p>
+          <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+            Generate a bill above to start tracking meter records.
+          </p>
+        </div>
       ) : (
         <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[600px] text-left text-sm">
+          <table className="w-full min-w-[580px] text-left text-sm">
             <thead>
-              <tr className="border-b border-slate-200 text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                <th className="px-2 py-3">Month</th>
-                <th className="px-2 py-3">Previous</th>
-                <th className="px-2 py-3">Current</th>
-                <th className="px-2 py-3">Units</th>
-                <th className="px-2 py-3">Rate/Unit</th>
-                <th className="px-2 py-3 text-right">Amount</th>
+              <tr className="border-b border-slate-200 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:border-slate-800 dark:text-slate-400">
+                <th className="py-2.5 pr-3">Month</th>
+                <th className="px-3 py-2.5 text-right">Previous</th>
+                <th className="px-3 py-2.5 text-right">Current</th>
+                <th className="px-3 py-2.5 text-right">Units</th>
+                <th className="px-3 py-2.5 text-right">Rate/Unit</th>
+                <th className="py-2.5 pl-3 text-right">Amount</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {visibleBills.map((bill) => (
                 <tr
                   key={bill.id}
-                  className="border-b border-slate-100 last:border-0 dark:border-slate-800"
+                  className="transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/40"
                 >
-                  <td className="px-2 py-3">
-                    <p className="whitespace-nowrap font-medium text-slate-900 dark:text-white">
+                  <td className="py-3 pr-3">
+                    <span className="font-semibold text-slate-900 dark:text-white">
                       {bill.month}
-                    </p>
+                    </span>
                     {bill.meterChanged && (
-                      <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
-                        Meter replaced
-                      </p>
+                      <span className="ml-2 inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                        Replaced
+                      </span>
                     )}
                   </td>
-                  <td className="px-2 py-3 text-slate-600 dark:text-slate-300">
+                  <td className="whitespace-nowrap px-3 py-3 text-right text-slate-600 dark:text-slate-300">
                     {bill.previousReading}
                   </td>
-                  <td className="px-2 py-3 text-slate-600 dark:text-slate-300">
+                  <td className="whitespace-nowrap px-3 py-3 text-right text-slate-600 dark:text-slate-300">
                     {bill.currentReading}
                   </td>
-                  <td className="px-2 py-3 text-slate-600 dark:text-slate-300">
+                  <td className="whitespace-nowrap px-3 py-3 text-right font-medium text-slate-900 dark:text-white">
                     {bill.unitsUsed}
                   </td>
-                  <td className="whitespace-nowrap px-2 py-3 text-slate-600 dark:text-slate-300">
-                    ₹{Number(bill.perUnitCharge).toLocaleString("en-IN")}
+                  <td className="whitespace-nowrap px-3 py-3 text-right text-slate-600 dark:text-slate-300">
+                    ₹{Number(bill.perUnitCharge || 0).toLocaleString("en-IN")}
                   </td>
-                  <td className="whitespace-nowrap px-2 py-3 text-right font-semibold text-slate-900 dark:text-white">
-                    ₹{Number(bill.electricityBill).toLocaleString("en-IN")}
+                  <td className="whitespace-nowrap py-3 pl-3 text-right font-bold text-emerald-600 dark:text-emerald-400">
+                    ₹{Number(bill.electricityBill || 0).toLocaleString("en-IN")}
                   </td>
                 </tr>
               ))}

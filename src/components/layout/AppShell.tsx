@@ -37,9 +37,28 @@ type ActivityItem = {
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+
   const [pendingPath, setPendingPath] = useState<string | null>(null);
   const navigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const [authChecking, setAuthChecking] = useState(true);
+  const [search, setSearch] = useState("");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const notificationRef = useRef<HTMLDivElement>(null);
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [activityLoading, setActivityLoading] = useState(false);
+  const [activityError, setActivityError] = useState(false);
+  const [notificationFilter, setNotificationFilter] = useState<
+    "ALL" | "UNREAD" | "OVERDUE" | "UPCOMING"
+  >("ALL");
+  const [markingAllRead, setMarkingAllRead] = useState(false);
+
+  // Clear path transition state on route change
   useEffect(() => {
     setMobileMenuOpen(false);
     setPendingPath(null);
@@ -49,8 +68,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       navigationTimeoutRef.current = null;
     }
   }, [pathname]);
-
-  const router = useRouter();
 
   function handleNavigation(href: string) {
     const destinationPath = href.split("?")[0].split("#")[0];
@@ -64,50 +81,23 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
     navigationTimeoutRef.current = setTimeout(() => {
       setPendingPath(null);
-    }, 15000);
+    }, 10000);
   }
 
-  const [authChecking, setAuthChecking] = useState(true);
-  const [search, setSearch] = useState("");
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-  const [searchLoading, setSearchLoading] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const norificationRef = useRef<HTMLDivElement>(null);
-  const [activities, setActivities] = useState<ActivityItem[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [activityLoading, setActivityLoading] = useState(false);
-  const [activityError, setActivityError] = useState(false);
-  const [notificationFilter, setNotificationFilter] = useState<
-    "ALL" | "UNREAD" | "OVERDUE" | "UPCOMING"
-  >("ALL");
-  const [markingAllRead, setMarkingAllRead] = useState(false);
-
-  const filteredActivities = activities
-    .filter((item) => {
-      switch (notificationFilter) {
-        case "UNREAD":
-          return !item.isRead;
-        case "OVERDUE":
-          return item.type === "OVERDUE";
-        case "UPCOMING":
-          return item.type === "UPCOMING";
-        default:
-          return true;
-      }
-    })
-    .sort((a, b) => {
-      if (a.isRead !== b.isRead) {
-        return a.isRead ? 1 : -1;
-      }
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
-
+  // Sync theme
   useEffect(() => {
-    const savedTheme = localStorage.getItem("bizflow-theme");
-    document.documentElement.classList.toggle("dark", savedTheme === "dark");
+    const savedTheme =
+      localStorage.getItem("rentello-theme") ||
+      localStorage.getItem("bizflow-theme");
+    const isDark =
+      savedTheme === "dark" ||
+      (!savedTheme &&
+        window.matchMedia("(prefers-color-scheme: dark)").matches);
+
+    document.documentElement.classList.toggle("dark", isDark);
   }, []);
 
+  // Check auth session
   useEffect(() => {
     let cancelled = false;
 
@@ -136,6 +126,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     };
   }, [router]);
 
+  // Search debouncing
   useEffect(() => {
     const query = search.trim();
 
@@ -173,7 +164,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           setSearchLoading(false);
         }
       }
-    }, 300);
+    }, 250);
 
     return () => {
       cancelled = true;
@@ -181,6 +172,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     };
   }, [search]);
 
+  // Load activities when popover opens
   useEffect(() => {
     if (!showNotifications) return;
 
@@ -221,22 +213,26 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     };
   }, [showNotifications]);
 
+  // Outside click to close notification drawer
   useEffect(() => {
     if (!showNotifications) return;
+
     function handleOutsideClick(event: MouseEvent) {
       if (
-        norificationRef.current &&
-        !norificationRef.current.contains(event.target as Node)
+        notificationRef.current &&
+        !notificationRef.current.contains(event.target as Node)
       ) {
         setShowNotifications(false);
       }
     }
+
     document.addEventListener("mousedown", handleOutsideClick);
     return () => {
       document.removeEventListener("mousedown", handleOutsideClick);
     };
   }, [showNotifications]);
 
+  // Initial unread count
   useEffect(() => {
     async function loadUnreadCount() {
       try {
@@ -255,9 +251,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   async function markAllAsRead() {
     const unreadActivities = activities.filter((item) => !item.isRead);
-    if (unreadActivities.length === 0 || markingAllRead) {
-      return;
-    }
+    if (unreadActivities.length === 0 || markingAllRead) return;
+
     setMarkingAllRead(true);
 
     try {
@@ -268,15 +263,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           activityIds: unreadActivities.map((item) => item.id),
         }),
       });
+
       if (!response.ok) {
         throw new Error("Failed to mark notifications as read.");
       }
+
       setActivities((current) =>
         current.map((item) => ({ ...item, isRead: true }))
       );
       setUnreadCount(0);
     } catch (error) {
-      console.error("Failed to mark all notification as read:", error);
+      console.error("Failed to mark all notifications as read:", error);
     } finally {
       setMarkingAllRead(false);
     }
@@ -287,7 +284,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       const { error } = await authclient.signOut();
 
       if (error) {
-        console.error("Logout failed:", error.message);
         alert("Logout failed. Please try again.");
         return;
       }
@@ -306,12 +302,33 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const filteredActivities = activities
+    .filter((item) => {
+      switch (notificationFilter) {
+        case "UNREAD":
+          return !item.isRead;
+        case "OVERDUE":
+          return item.type === "OVERDUE";
+        case "UPCOMING":
+          return item.type === "UPCOMING";
+        default:
+          return true;
+      }
+    })
+    .sort((a, b) => {
+      if (a.isRead !== b.isRead) {
+        return a.isRead ? 1 : -1;
+      }
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+
   if (authChecking) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950">
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          Checking session...
-        </p>
+        <div className="flex items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
+          <span className="h-5 w-5 animate-spin rounded-full border-2 border-current border-r-transparent" />
+          <span>Verifying credentials...</span>
+        </div>
       </div>
     );
   }
@@ -322,9 +339,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         {/* Desktop Sidebar */}
         <aside className="hidden w-64 flex-col border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 md:flex">
           <div className="flex h-16 items-center border-b border-slate-200 px-6 dark:border-slate-800">
-            <div className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+            <Link
+              href="/"
+              className="text-xl font-bold tracking-tight text-slate-900 dark:text-white"
+            >
               Rentello
-            </div>
+            </Link>
           </div>
 
           <nav className="flex-1 space-y-1 p-4">
@@ -333,17 +353,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 item.href === "/"
                   ? pathname === "/"
                   : pathname.startsWith(item.href);
+
               return (
                 <Link
                   key={item.href}
                   href={item.href}
                   prefetch={false}
                   onClick={() => handleNavigation(item.href)}
-                  className={`block rounded-lg px-4 py-3 text-sm font-medium transition ${
-                    active
-                      ? "bg-slate-900 text-white"
+                  className={`block rounded-lg px-4 py-2.5 text-sm font-medium transition active:scale-[0.98] ${active
+                      ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900"
                       : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
-                  }`}
+                    }`}
                 >
                   <span className="flex items-center justify-between gap-2">
                     {item.name}
@@ -365,7 +385,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               href="/settings"
               prefetch={false}
               onClick={() => handleNavigation("/settings")}
-              className="block rounded-lg px-4 py-3 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+              className={`block rounded-lg px-4 py-2.5 text-sm font-medium transition active:scale-[0.98] ${pathname.startsWith("/settings")
+                  ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900"
+                  : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                }`}
             >
               <span className="flex items-center justify-between gap-2">
                 Settings
@@ -381,7 +404,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </aside>
 
-        {/* Main Content Area */}
+        {/* Main Header & Content Area */}
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <header className="relative z-40 flex min-h-16 flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900 md:flex-nowrap md:px-6">
             <div className="flex shrink-0 items-center gap-3">
@@ -389,12 +412,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 type="button"
                 onClick={() => setMobileMenuOpen((open) => !open)}
                 aria-label={
-                  mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"
+                  mobileMenuOpen
+                    ? "Close navigation menu"
+                    : "Open navigation menu"
                 }
                 aria-expanded={mobileMenuOpen}
-                className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 md:hidden"
+                className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 active:scale-[0.98] dark:text-slate-300 dark:hover:bg-slate-800 md:hidden"
               >
-                {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+                {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
               </button>
 
               <Link
@@ -404,19 +429,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               >
                 Rentello
               </Link>
-
-              <h1 className="hidden text-lg font-semibold text-slate-900 dark:text-white md:block">
-                Rentello
-              </h1>
             </div>
 
+            {/* Global Search Bar */}
             <div className="relative order-last w-full min-w-0 md:order-none md:max-w-md md:flex-1">
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search properties, tenants, units..."
-                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm outline-none focus:border-slate-500 dark:border-slate-700 dark:bg-slate-800"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:focus:ring-blue-900"
               />
 
               {search && (
@@ -427,23 +449,23 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     setSearch("");
                     setSearchResults([]);
                   }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 px-2 text-slate-400"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-xs font-semibold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                 >
-                  ×
+                  ✕
                 </button>
               )}
 
               {search && (
-                <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900">
+                <div className="absolute left-0 right-0 top-full z-50 mt-2 max-h-80 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-900">
                   {searchLoading && (
-                    <div className="px-4 py-3 text-sm text-slate-500">
-                      Searching...
+                    <div className="px-4 py-3 text-center text-xs text-slate-500 dark:text-slate-400">
+                      Searching records...
                     </div>
                   )}
 
                   {!searchLoading && searchResults.length === 0 && (
-                    <div className="px-4 py-3 text-sm text-slate-500">
-                      No results found.
+                    <div className="px-4 py-3 text-center text-xs text-slate-500 dark:text-slate-400">
+                      No matching records found.
                     </div>
                   )}
 
@@ -458,24 +480,23 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                           setSearch("");
                           setSearchResults([]);
 
-                          const destination = new URL(
-                            result.href,
-                            window.location.origin
-                          );
-                          destination.searchParams.set(
-                            "_highlightRun",
-                            crypto.randomUUID()
-                          );
-                          router.push(
-                            `${destination.pathname}${destination.search}${destination.hash}`
-                          );
+                          const [basePath, existingQuery] = result.href.split("?");
+                          const params = new URLSearchParams(existingQuery || "");
+
+                          // 1. Ensure target ID is in query params
+                          params.set("highlight", String(result.id));
+
+                          // 2. Add timestamp nonce so every single click is a unique URL change
+                          params.set("_hNonce", String(Date.now()));
+
+                          router.push(`${basePath}?${params.toString()}`);
                         }}
-                        className="block border-b border-slate-100 px-4 py-3 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800"
+                        className="block border-b border-slate-100 px-4 py-2.5 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800"
                       >
-                        <div className="text-xs font-medium text-slate-400">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
                           {result.type}
                         </div>
-                        <div className="text-sm font-medium text-slate-900 dark:text-white">
+                        <div className="text-sm font-semibold text-slate-900 dark:text-white">
                           {result.title}
                         </div>
                         <div className="text-xs text-slate-500 dark:text-slate-400">
@@ -487,53 +508,55 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               )}
             </div>
 
-            <div className="absolute right-4 top-3 flex items-center gap-2 md:static md:gap-3">
-              <div ref={norificationRef} className="relative">
+            {/* Notifications & User Actions */}
+            <div className="flex items-center gap-2 md:gap-3">
+              <div ref={notificationRef} className="relative">
                 <button
                   type="button"
                   aria-label="Notifications"
                   aria-expanded={showNotifications}
                   onClick={() => setShowNotifications(!showNotifications)}
-                  className="relative rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                  className="relative rounded-lg p-2 text-slate-600 transition hover:bg-slate-100 active:scale-[0.98] dark:text-slate-300 dark:hover:bg-slate-800"
                 >
                   <Bell size={20} />
                   {unreadCount > 0 && (
-                    <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                    <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-bold text-white">
                       {unreadCount > 99 ? "99+" : unreadCount}
                     </span>
                   )}
                 </button>
 
                 {showNotifications && (
-                  <div className="absolute right-0 top-full z-50 mt-2 w-[min(20rem,calc(100vw-2rem))] max-w-[calc(100vw-1rem)] rounded-lg border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900 [@media(max-width:767px)]:fixed [@media(max-width:767px)]:left-2 [@media(max-width:767px)]:right-2 [@media(max-width:767px)]:top-16 [@media(max-width:767px)]:w-auto">
-                    <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-700">
+                  <div className="absolute right-0 top-full z-50 mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-900 [@media(max-width:767px)]:fixed [@media(max-width:767px)]:left-2 [@media(max-width:767px)]:right-2 [@media(max-width:767px)]:top-16 [@media(max-width:767px)]:w-auto">
+                    <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-800">
                       <div className="flex items-center justify-between gap-2">
                         <h2 className="font-semibold text-slate-900 dark:text-white">
                           Notifications
                         </h2>
-                        <button
-                          type="button"
-                          onClick={markAllAsRead}
-                          disabled={
-                            markingAllRead ||
-                            activities.every((item) => item.isRead)
-                          }
-                          className="text-xs font-medium text-blue-600 hover:text-blue-800 disabled:cursor-not-allowed disabled:opacity-50 dark:text-blue-400"
-                        >
-                          {markingAllRead ? "Marking" : "Mark all as read"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setShowNotifications(false)}
-                          aria-label="close notifications"
-                          title="Close notifications"
-                          className="rounded-md p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
-                        >
-                          ✕
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={markAllAsRead}
+                            disabled={
+                              markingAllRead ||
+                              activities.every((item) => item.isRead)
+                            }
+                            className="text-xs font-medium text-blue-600 transition hover:underline disabled:cursor-not-allowed disabled:opacity-50 dark:text-blue-400"
+                          >
+                            {markingAllRead ? "Marking..." : "Mark all read"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setShowNotifications(false)}
+                            aria-label="Close notifications"
+                            className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-white"
+                          >
+                            ✕
+                          </button>
+                        </div>
                       </div>
 
-                      <div className="mt-3 flex flex-wrap gap-2">
+                      <div className="mt-3 flex flex-wrap gap-1.5">
                         {(
                           ["ALL", "UNREAD", "OVERDUE", "UPCOMING"] as const
                         ).map((filter) => (
@@ -541,19 +564,18 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                             key={filter}
                             type="button"
                             onClick={() => setNotificationFilter(filter)}
-                            className={`rounded-full px-3 py-1 text-xs font-medium ${
-                              notificationFilter === filter
+                            className={`rounded-full px-2.5 py-0.5 text-xs font-medium transition active:scale-[0.98] ${notificationFilter === filter
                                 ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900"
                                 : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
-                            }`}
+                              }`}
                           >
                             {filter === "ALL"
                               ? "All"
                               : filter === "UNREAD"
-                              ? "Unread"
-                              : filter === "OVERDUE"
-                              ? "Overdue"
-                              : "Upcoming"}
+                                ? "Unread"
+                                : filter === "OVERDUE"
+                                  ? "Overdue"
+                                  : "Upcoming"}
                           </button>
                         ))}
                       </div>
@@ -561,23 +583,22 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
                     <div className="max-h-96 overflow-y-auto">
                       {activityLoading && (
-                        <div className="px-4 py-6 text-center text-sm text-slate-500 dark:text-slate-400">
+                        <div className="px-4 py-6 text-center text-xs text-slate-500 dark:text-slate-400">
                           Loading activity...
                         </div>
                       )}
 
                       {!activityLoading && activityError && (
-                        <div className="px-4 py-6 text-center text-sm text-red-500">
-                          Couldn't load activity. Close and reopen notifications
-                          to try again.
+                        <div className="px-4 py-6 text-center text-xs text-rose-500">
+                          Unable to load notifications. Please try again.
                         </div>
                       )}
 
                       {!activityLoading &&
                         !activityError &&
                         filteredActivities.length === 0 && (
-                          <div className="px-4 py-6 text-center text-sm text-slate-500 dark:text-slate-400">
-                            No activity yet.
+                          <div className="px-4 py-6 text-center text-xs text-slate-500 dark:text-slate-400">
+                            No notifications found.
                           </div>
                         )}
 
@@ -588,92 +609,52 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                             key={item.id}
                             href={item.href}
                             prefetch={false}
-                            onClick={async (event) => {
-                              event.preventDefault();
-
+                            onClick={async () => {
                               if (!item.isRead) {
                                 setActivities((current) =>
-                                  current.map((activity) =>
-                                    activity.id === item.id
-                                      ? { ...activity, isRead: true }
-                                      : activity
+                                  current.map((act) =>
+                                    act.id === item.id
+                                      ? { ...act, isRead: true }
+                                      : act
                                   )
                                 );
-                                setUnreadCount((count) =>
-                                  Math.max(0, count - 1)
-                                );
+                                setUnreadCount((c) => Math.max(0, c - 1));
 
                                 try {
-                                  const response = await fetch(
-                                    "/api/activity/read",
-                                    {
-                                      method: "POST",
-                                      headers: {
-                                        "Content-Type": "application/json",
-                                      },
-                                      body: JSON.stringify({
-                                        activityId: item.id,
-                                      }),
-                                    }
-                                  );
-
-                                  if (!response.ok) {
-                                    throw new Error(
-                                      "Failed to save read status"
-                                    );
-                                  }
-                                } catch {
-                                  setActivities((current) =>
-                                    current.map((activity) =>
-                                      activity.id === item.id
-                                        ? { ...activity, isRead: false }
-                                        : activity
-                                    )
-                                  );
-                                  setUnreadCount((count) => count + 1);
+                                  await fetch("/api/activity/read", {
+                                    method: "POST",
+                                    headers: {
+                                      "Content-Type": "application/json",
+                                    },
+                                    body: JSON.stringify({
+                                      activityId: item.id,
+                                    }),
+                                  });
+                                } catch (e) {
+                                  console.error("Read status error:", e);
                                 }
                               }
-
                               setShowNotifications(false);
-
-                              const destination = new URL(
-                                item.href,
-                                window.location.origin
-                              );
-                              destination.searchParams.set(
-                                "_highlightRun",
-                                String(Date.now())
-                              );
-                              router.push(
-                                `${destination.pathname}${destination.search}${destination.hash}`
-                              );
                             }}
-                            className={`block border-b border-slate-200 px-4 py-3 transition-colors hover:bg-blue-50 dark:border-slate-800 dark:hover:bg-slate-800 ${
-                              item.isRead
-                                ? "opacity-70"
-                                : "bg-blue-50/70 dark:bg-slate-800/70"
-                            }`}
+                            className={`block border-b border-slate-100 px-4 py-3 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/60 ${item.isRead
+                                ? "opacity-75"
+                                : "bg-blue-50/50 dark:bg-slate-800/40"
+                              }`}
                           >
-                            <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-start justify-between gap-2">
                               <div className="min-w-0 flex-1">
-                                <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                                <div className="text-xs font-semibold text-slate-900 dark:text-white">
                                   {item.title}
                                 </div>
-                                <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                <div className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
                                   {item.description}
                                 </div>
-                                <div className="mt-2 text-[11px] text-slate-400">
+                                <div className="mt-1.5 text-[10px] text-slate-400">
                                   {formatDate(item.createdAt)}
                                 </div>
                               </div>
-                              <span className="shrink-0 rounded-md bg-blue-100 px-2 py-1 text-[11px] font-semibold text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-                                {item.type === "PAYMENT"
-                                  ? "View Payments"
-                                  : item.type === "ELECTRICITY"
-                                  ? "View Unit"
-                                  : item.type === "EXPENSE"
-                                  ? "View Expenses"
-                                  : "View Details"}
+                              <span className="shrink-0 rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                                {item.type}
                               </span>
                             </div>
                           </Link>
@@ -684,8 +665,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               </div>
 
               <button
+                type="button"
                 onClick={logout}
-                className="rounded-lg px-2 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white md:px-3 md:text-sm"
+                className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100 active:scale-[0.98] dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
               >
                 Logout
               </button>
@@ -699,10 +681,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 type="button"
                 aria-label="Close navigation menu"
                 onClick={() => setMobileMenuOpen(false)}
-                className="fixed inset-0 z-40 bg-black/30 md:hidden"
+                className="fixed inset-0 z-40 bg-black/40 md:hidden"
               />
 
-              <nav className="absolute left-0 right-0 top-16 z-50 max-h-[calc(100vh-4rem)] overflow-y-auto border-b border-slate-200 bg-white p-3 shadow-lg dark:border-slate-800 dark:bg-slate-900 md:hidden">
+              <nav className="absolute left-0 right-0 top-16 z-50 max-h-[calc(100vh-4rem)] overflow-y-auto border-b border-slate-200 bg-white p-3 shadow-2xl dark:border-slate-800 dark:bg-slate-900 md:hidden">
                 {navigation.map((item) => {
                   const active =
                     item.href === "/"
@@ -718,20 +700,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                         setMobileMenuOpen(false);
                         handleNavigation(item.href);
                       }}
-                      className={`mb-1 block rounded-lg px-4 py-3 text-sm font-medium transition ${
-                        active
+                      className={`mb-1 block rounded-lg px-4 py-2.5 text-sm font-medium transition active:scale-[0.98] ${active
                           ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900"
                           : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-                      }`}
+                        }`}
                     >
                       <span className="flex items-center justify-between gap-2">
                         {item.name}
                         {pendingPath === item.href && (
-                          <span
-                            className="h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent"
-                            role="status"
-                            aria-label={`Loading ${item.name}`}
-                          />
+                          <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent" />
                         )}
                       </span>
                     </Link>
@@ -741,17 +718,19 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 <Link
                   href="/settings"
                   prefetch={false}
-                  onClick={() => handleNavigation("/settings")}
-                  className="mt-2 block rounded-lg border-t border-slate-200 px-4 py-3 text-sm font-medium text-slate-600 dark:border-slate-700 dark:text-slate-300"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    handleNavigation("/settings");
+                  }}
+                  className={`mt-2 block rounded-lg border-t border-slate-200 px-4 py-2.5 text-sm font-medium transition active:scale-[0.98] dark:border-slate-800 ${pathname.startsWith("/settings")
+                      ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900"
+                      : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    }`}
                 >
                   <span className="flex items-center justify-between gap-2">
                     Settings
                     {pendingPath === "/settings" && (
-                      <span
-                        className="h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent"
-                        role="status"
-                        aria-label="Loading Settings"
-                      />
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent" />
                     )}
                   </span>
                 </Link>
@@ -759,7 +738,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 <button
                   type="button"
                   onClick={logout}
-                  className="mt-1 block w-full rounded-lg px-4 py-3 text-left text-sm font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-slate-800"
+                  className="mt-1 block w-full rounded-lg px-4 py-2.5 text-left text-sm font-medium text-rose-600 transition hover:bg-rose-50 active:scale-[0.98] dark:text-rose-400 dark:hover:bg-slate-800"
                 >
                   Logout
                 </button>
@@ -767,21 +746,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </>
           )}
 
+          {/* Main Viewport */}
           <main className="relative min-h-0 flex-1 overflow-y-auto p-4 md:p-6">
             {pendingPath && (
               <div
-                className="fixed left-1/2 top-3 z-50 flex -translate-x-1/2 items-center gap-3 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-lg dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 md:hidden"
+                className="fixed left-1/2 top-3 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-lg dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 md:hidden"
                 role="status"
-                aria-live="polite"
               >
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent" />
-                Loading{" "}
-                {pendingPath === "/"
-                  ? "Dashboard"
-                  : pendingPath
-                      .slice(1)
-                      .replace(/^./, (letter) => letter.toUpperCase())}
-                …
+                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-r-transparent" />
+                <span>Navigating...</span>
               </div>
             )}
             {children}
