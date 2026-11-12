@@ -93,7 +93,7 @@ export async function getLeasesForUser(userId: string): Promise<LeaseListItem[]>
       id: lease.id,
       tenant: { id: tenant.id, name: tenant.name, phone: tenant.phone },
       property: { id: property.id, name: property.name },
-      unit: { id: unit.id, number: unit.number, type: unit.type },
+      unit: { id: unit.id, number: unit.number, type: unit._type },
       agreementStartsOn: lease.agreementStartsOn,
       agreementEndsOn: lease.agreementEndsOn,
       rent: lease.rent,

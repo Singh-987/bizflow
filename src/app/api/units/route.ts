@@ -121,7 +121,7 @@ export async function POST(request: Request){
     }
     const unit = await db.orm.public.Unit.create({
         number: body.number,
-        type: body.type,
+        _type: body.type,
         rent: body.rent,
         status: body.status,
         propertyId,
@@ -197,7 +197,7 @@ export async function PATCH(request:Request){
     })
     .update({
         number: body.number,
-        type: body.type,
+        _type: body.type,
         rent: body.rent,
         status: body.status
     });

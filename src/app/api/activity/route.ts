@@ -153,7 +153,7 @@ export async function GET() {
     activity.push({
       id: `payment-${payment.id}`,
       type: "PAYMENT",
-      title: `${payment.type} payment recorded`,
+      title: `${payment.paymentType} payment recorded`,
       description:
         `${tenant.name} · ${property.name} · ` +
         `Unit ${unit.number} · ₹${payment.amount}`,
@@ -192,7 +192,7 @@ export async function GET() {
   const rentPaidByLeaseMonth = new Map<string, number>();
 
   for (const payment of allPayments) {
-    if (payment.type !== "RENT") continue;
+    if (payment.paymentType !== "RENT") continue;
 
     const key = `${payment.leaseId}-${payment.month}`;
     rentPaidByLeaseMonth.set(

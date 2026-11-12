@@ -105,7 +105,7 @@ for (const unit of units) {
 
     if (
         unit.number.toString().includes(query) ||
-        unit.type.toLowerCase().includes(query)
+        unit._type.toLowerCase().includes(query)
     ) {
         results.push({
             type: "Unit",
@@ -192,7 +192,7 @@ for (const payment of allPayments) {
         payment.amount.toString().includes(query) ||
         payment.month.toLowerCase().includes(query) ||
         payment.method.toLowerCase().includes(query) ||
-        payment.type.toLowerCase().includes(query) ||
+        payment.paymentType.toLowerCase().includes(query) ||
         tenant.name.toLowerCase().includes(query) ||
         property.name.toLowerCase().includes(query) ||
         unit.number.toString().includes(query)
@@ -202,7 +202,7 @@ for (const payment of allPayments) {
             id: payment.id,
             title: `₹${payment.amount}`,
             subtitle:
-                `${payment.type} · ` +
+                `${payment.paymentType} · ` +
                 `${tenant.name} · ` +
                 `${property.name} · ` +
                 `Unit ${unit.number}`,
