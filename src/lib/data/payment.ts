@@ -76,8 +76,9 @@ export async function getPaymentsForUser(
         createdAt: payment.createdAt,
         month: payment.month,
         method: payment.method,
-        type: payment.type,
+        paymentType: payment.paymentType,
         note: payment.note,
+        editNotes: payment.editNotes,
       },
       lease: {
         id: lease.id,

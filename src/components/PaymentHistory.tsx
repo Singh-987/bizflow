@@ -79,10 +79,10 @@ export default function PaymentHistory({
                     <div className="flex items-center gap-2">
                       <span
                         className={`inline-block rounded-full border px-2 py-0.5 text-[10px] font-semibold ${getTypeBadge(
-                          item.payment?.type
+                          item.payment?.paymentType
                         )}`}
                       >
-                        {item.payment?.type || "PAYMENT"}
+                        {item.payment?.paymentType || "PAYMENT"}
                       </span>
                       <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
                         {item.payment?.month || "-"}

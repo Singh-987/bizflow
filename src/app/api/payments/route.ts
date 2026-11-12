@@ -122,9 +122,95 @@ export async function POST(request: Request){
         paidOn: body.paidOn,
         month: body.month,
         method: body.method,
-        type,
+        paymentType:type,
         note: body.note ||null,
     });
 
     return Response.json(payment);
+}
+
+export async function PATCH(request: Request){
+    const session=await auth.api.getSession({
+        headers: await headers(),
+    });
+    if(!session){
+        return Response.json(
+            {error: "Unauthorized"},
+            {status: 401}
+        );
+    }
+    const body = await request.json();
+    const paymentId = Number(body.id);
+    const amount = Number(body.amount);
+
+    if(!paymentId){
+        return Response.json(
+            {error: " Payment Id is required"},
+            {status: 400}
+        );
+    }
+    if(amount<=0){
+        return Response.json(
+            {error:"Amount should be greater than 0"},
+            {status: 400},
+        );
+    }
+    const existingPayment = await db.orm.public.Payment
+        .where({id:paymentId})
+        .first();
+
+    if(!existingPayment){
+        return Response.json(
+            {error: "Payment not found"},
+            {status: 404}
+        );
+    }
+    const lease = await db.orm.public.Lease
+        .where({
+            id: existingPayment.leaseId
+        })
+        .first();
+    if(!lease){
+        return Response.json(
+            {error: "Associated lease not found."},
+            {status: 404}
+        )
+    }
+    const unit = await db.orm.public.Unit
+        .where({
+            id: lease.unitId
+        })
+        .first();
+    if(!unit){
+        return Response.json(
+            {error: "Associated unit not found"},
+            {status: 404}
+        );
+    }
+    const property = await db.orm.public.Property
+        .where({
+            id: unit.propertyId,
+            userId: session.user.id
+        })
+        .first();
+    if(!property){
+        return Response.json(
+            {error: "Unauthorized to edit this payment"},
+            {status: 403}
+        );
+    }
+    const updatepayment = await db.orm.public.Payment
+        .where({
+            id: paymentId
+        })
+        .update({
+            amount,
+            paidOn: body.paidOn || existingPayment.paidOn,
+            month: body.month || existingPayment.month,
+            method: body.method || existingPayment.method,
+            paymentType: body.paymentType || existingPayment.paymentType,
+            note: body.note!== undefined? body.note :existingPayment.note,
+            editNotes: body.editNotes || null, 
+        });
+    return Response.json(updatepayment);
 }

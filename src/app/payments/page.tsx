@@ -1,3 +1,4 @@
+import EditPaymentModal from "@/components/EditPayment";
 import AppShell from "@/components/layout/AppShell";
 import LeaseHighlight from "@/components/LeaseHighlight";
 import PaymentsPageForm from "@/components/PaymentPageForm";
@@ -52,11 +53,11 @@ export default async function PaymentsPage({
   );
 
   const rentPaymentsCount = payments.filter(
-    (item: any) => item.payment?.type === "RENT"
+    (item: any) => item.payment?.paymentType === "RENT"
   ).length;
 
   const electricityPaymentsCount = payments.filter(
-    (item: any) => item.payment?.type === "ELECTRICITY"
+    (item: any) => item.payment?.paymentType === "ELECTRICITY"
   ).length;
 
   return (
@@ -148,11 +149,19 @@ export default async function PaymentsPage({
 
                     <span
                       className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${getPaymentTypeBadge(
-                        item.payment?.type
+                        item.payment?.paymentType
                       )}`}
                     >
-                      {item.payment?.type || "PAYMENT"}
+                      {item.payment?.paymentType || "PAYMENT"}
                     </span>
+                    <div className="mt-1">
+                      <EditPaymentModal
+                        payment={{...item.payment,
+                          id:
+                            item.payment?.id || item.id,
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -183,6 +192,16 @@ export default async function PaymentsPage({
                       <span className="text-slate-400">Note: </span>
                       <span className="italic text-slate-700 dark:text-slate-300">
                         {item.payment.note}
+                      </span>
+                    </div>
+                  )}
+                  {item.payment?.editNotes && (
+                    <div className="sm:col-span-3 text-amber-700 dark:text-amber-400">
+                      <span className="font-medium">
+                        Edited: {""}
+                      </span>
+                      <span className="italic">
+                        {item.payment.editNotes}
                       </span>
                     </div>
                   )}

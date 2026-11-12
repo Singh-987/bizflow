@@ -1,129 +1,211 @@
 // use prisma-next
+// Contract inferred from the live database schema. Edit as needed, then run `prisma contract emit`.
 model User {
-  id         String                     @id
-  email      String                     @unique
-  name       String?
-  properties Property[]
-  tenants    Tenant[]
+  id                String             @id(map: "user_pkey")
+  createdAt         TimestamptzString  @default(now())
+  email             String             @unique(map: "user_email_key")
+  name              String?
+  updatedAt         TimestamptzString
+  emailVerified     Boolean            @default(false)
+  image             String?
+  accounts          Account[]
+  activityLogs      ActivityLog[]
   notificationReads NotificationRead[]
-  activityLogs ActivityLog[]
-  createdAt  TimestamptzString          @default(now())
-  updatedAt  temporal.updatedAtString()
+  properties        Property[]
+  sessions          Session[]
+  tenants           Tenant[]
+
+  @@map("user")
 }
 
-model Property {
-  id      Int    @id @default(autoincrement())
-  name    String
-  address String
-  notes   String?
-  userId  String
-  isArchived  Boolean   @default(false)
-  user    User   @relation(fields:[userId], references:[id], onDelete: Cascade)
-  units   Unit[]
-  expenses Expense[]
+model Account {
+  id                    String             @id(map: "account_pkey")
+  issuer                String
+  accountId             String
+  providerId            String
+  userId                String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  TimestamptzString?
+  refreshTokenExpiresAt TimestamptzString?
+  scope                 String?
+  password              String?
+  createdAt             TimestamptzString  @default(now())
+  updatedAt             TimestamptzString
+  user                  User               @relation(fields:[userId], references:[id], onDelete: Cascade, map: "account_userId_fkey")
+
+  @@index([issuer, accountId], map: "account_issuer_accountId_uidx", unique: true)
+  @@index([userId], map: "account_userId_idx")
+  @@map("account")
 }
 
-model Unit {
-  id         Int      @id @default(autoincrement())
-  number     Int
-  type       String
-  rent       Int
-  status     String
-  propertyId Int
-  property   Property @relation(fields:[propertyId], references:[id], onDelete: Cascade)
-  leases     Lease[]
+model ActivityLog {
+  id          Int               @id(map: "activityLog_pkey") @default(autoincrement())
+  action      String
+  createdAt   TimestamptzString @default(now())
+  description String
+  entityId    String?
+  entityType  String
+  href        String?
+  title       String
+  userId      String
+  user        User              @relation(fields:[userId], references:[id], onDelete: Cascade, map: "activityLog_userId_fkey")
+
+  @@index([userId, createdAt], name: "activityLog_userId_createdAt_idx")
+  @@index([userId], name: "activityLog_userId_idx")
+  @@map("activityLog")
 }
 
 model Tenant {
-  id             Int     @id @default(autoincrement())
-  name           String
-  phone          String
+  id             Int     @id(map: "tenant_pkey") @default(autoincrement())
   alternatePhone String
   email          String?
   govtId         String?
   govtIdFile     String?
+  name           String
+  phone          String
   userId         String
-  user           User   @relation(fields:[userId], references:[id], onDelete: Cascade)
   leases         Lease[]
+  user           User    @relation(fields:[userId], references:[id], onDelete: Cascade, map: "tenant_userId_fkey")
+
+  @@index([userId], name: "tenant_userId_idx")
+  @@map("tenant")
+}
+
+model Property {
+  id         Int       @id(map: "property_pkey") @default(autoincrement())
+  address    String
+  name       String
+  userId     String
+  notes      String?
+  isArchived Boolean   @default(false)
+  expenses   Expense[]
+  units      Unit[]
+  user       User      @relation(fields:[userId], references:[id], onDelete: Cascade, map: "property_userId_fkey")
+
+  @@index([userId], name: "property_userId_idx")
+  @@map("property")
+}
+
+model Unit {
+  id         Int      @id(map: "unit_pkey") @default(autoincrement())
+  number     Int
+  propertyId Int
+  rent       Int
+  status     String
+  _type      String   @map("type")
+  leases     Lease[]
+  property   Property @relation(fields:[propertyId], references:[id], onDelete: Cascade, map: "unit_propertyId_fkey")
+
+  @@index([propertyId], name: "unit_propertyId_idx")
+  @@map("unit")
 }
 
 model Lease {
-  id                Int      @id @default(autoincrement())
-  tenantId          Int
-  tenant            Tenant   @relation(fields:[tenantId], references:[id], onDelete: Cascade)
-  unitId            Int
-  unit              Unit     @relation(fields:[unitId], references:[id], onDelete: Cascade)
-  agreementStartsOn TimestamptzString
-  agreementEndsOn   TimestamptzString?
-  rent              Int
-  securityDeposit   Int
-  status            String
-  payments          Payment[]
-  electricityReadings   ElectricityReading[]
+  id                  Int                  @id(map: "lease_pkey") @default(autoincrement())
+  agreementEndsOn     TimestamptzString?
+  agreementStartsOn   TimestamptzString
+  rent                Int
+  securityDeposit     Int
+  status              String
+  tenantId            Int
+  unitId              Int
+  electricityReadings ElectricityReading[]
+  payments            Payment[]
+  tenant              Tenant               @relation(fields:[tenantId], references:[id], onDelete: Cascade, map: "lease_tenantId_fkey")
+  unit                Unit                 @relation(fields:[unitId], references:[id], onDelete: Cascade, map: "lease_unitId_fkey")
+
+  @@index([tenantId], name: "lease_tenantId_idx")
+  @@index([unitId], name: "lease_unitId_idx")
+  @@map("lease")
 }
 
-model Payment{
-  id              Int     @id @default(autoincrement())
-  leaseId         Int
-  lease           Lease   @relation(fields:[leaseId], references:[id], onDelete: Cascade)
-  amount          Int
-  type            String  @default("RENT")
-  paidOn          TimestamptzString
-  month           String
-  method          String
-  note           String?
+model ElectricityReading {
+  id              Int               @id(map: "electricityReading_pkey") @default(autoincrement())
   createdAt       TimestamptzString @default(now())
-}
-
-model ElectricityReading{
-  id              Int     @id  @default(autoincrement())
-  leaseId         Int
-  lease           Lease   @relation(fields:[leaseId], references:[id], onDelete: Cascade)
-  month           String
-  previousReading Int
   currentReading  Int
-  unitsUsed       Int
-  perUnitCharge   Int
   electricityBill Int
-  meterChanged    Boolean  @default(false)
-  createdAt       TimestamptzString @default(now())
+  leaseId         Int
+  meterChanged    Boolean           @default(false)
+  month           String
+  perUnitCharge   Int
+  previousReading Int
+  unitsUsed       Int
+  lease           Lease             @relation(fields:[leaseId], references:[id], onDelete: Cascade, map: "electricityReading_leaseId_fkey")
 
-  @@unique([leaseId, month])
+  @@unique([leaseId, month], map: "electricityReading_leaseId_month_key")
+  @@index([leaseId], name: "electricityReading_leaseId_idx")
+  @@map("electricityReading")
 }
 
-model Expense{
-  id              Int     @id  @default(autoincrement())
-  propertyId      Int
-  property        Property @relation(fields:[propertyId], references:[id], onDelete: Cascade)
-  amount          Float
-  date            String
-  category        String
-  note            String?
-  createdAt       TimestamptzString @default(now())
- }
+model Expense {
+  id         Int               @id(map: "expense_pkey") @default(autoincrement())
+  amount     Float
+  category   String
+  createdAt  TimestamptzString @default(now())
+  date       String
+  note       String?
+  propertyId Int
+  property   Property          @relation(fields:[propertyId], references:[id], onDelete: Cascade, map: "expense_propertyId_fkey")
 
- model NotificationRead{
-  id              Int     @id  @default(autoincrement())
-  userId          String
-  user            User    @relation(fields:[userId], references:[id], onDelete: Cascade)
-  activityId      String
-  readAt          TimestamptzString @default(now())
-  @@unique([userId, activityId])
- }
+  @@index([propertyId], name: "expense_propertyId_idx")
+  @@map("expense")
+}
 
- model ActivityLog {
-  id          Int      @id @default(autoincrement())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+model NotificationRead {
+  id         Int               @id(map: "notificationRead_pkey") @default(autoincrement())
+  activityId String
+  readAt     TimestamptzString @default(now())
+  userId     String
+  user       User              @relation(fields:[userId], references:[id], onDelete: Cascade, map: "notificationRead_userId_fkey")
 
-  entityType  String
-  entityId    String?
-  action      String
-  title       String
-  description String
-  href        String?
+  @@unique([userId, activityId], map: "notificationRead_userId_activityId_key")
+  @@index([userId], name: "notificationRead_userId_idx")
+  @@map("notificationRead")
+}
 
-  createdAt   TimestamptzString @default(now())
+model Payment {
+  id          Int                        @id(map: "payment_pkey") @default(autoincrement())
+  amount      Int
+  createdAt   TimestamptzString          @default(now())
+  updatedAt   temporal.updatedAtString()
+  editNotes   String?
+  leaseId     Int
+  method      String
+  month       String
+  note        String?
+  paidOn      TimestamptzString
+  paymentType String                     @default("RENT") @map("type")
+  lease       Lease                      @relation(fields:[leaseId], references:[id], onDelete: Cascade, map: "payment_leaseId_fkey")
 
-  @@index([userId, createdAt])
+  @@index([leaseId], name: "payment_leaseId_idx")
+  @@map("payment")
+}
+
+model Session {
+  id        String            @id(map: "session_pkey")
+  expiresAt TimestamptzString
+  token     String            @unique(map: "session_token_key")
+  createdAt TimestamptzString @default(now())
+  updatedAt TimestamptzString
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User              @relation(fields:[userId], references:[id], onDelete: Cascade, map: "session_userId_fkey")
+
+  @@index([userId], map: "session_userId_idx")
+  @@map("session")
+}
+
+model Verification {
+  id         String            @id(map: "verification_pkey")
+  identifier String
+  value      String
+  expiresAt  TimestamptzString
+  createdAt  TimestamptzString @default(now())
+  updatedAt  TimestamptzString @default(now())
+
+  @@index([identifier], map: "verification_identifier_idx")
+  @@map("verification")
 }
