@@ -14,6 +14,13 @@ type Tenant = {
   govtId: string | null;
   govtIdFile: string | null;
 };
+function maskGovtId(value: string | null): string{
+  if(!value || !value.trim()) return"Not provided";
+  const clean = value.trim();
+  if(clean.length<=4) return clean;
+  const maskedLength = Math.min(clean.length -4, 8);
+  return `${"•".repeat(maskedLength)} ${clean.slice(-4)}`;
+}
 
 export default function Tenants() {
   const router = useRouter();
@@ -28,6 +35,20 @@ export default function Tenants() {
   const [govtId, setGovtId] = useState("");
   const [loading, setLoading] = useState(false);
   const [selectedTenantId, setSelectedTenantId] = useState<number | null>(null);
+  const [revealedIds, setRevealedIds]= useState<Set<number>>(new Set());
+  const [showInputId, setShowInputId]= useState<boolean>(false);
+  
+  function toggleRevealId(tenantId: number): void{
+    setRevealedIds((prev)=>{
+      const next= new Set(prev);
+      if(next.has(tenantId)){
+        next.delete(tenantId);
+      }else{
+        next.add(tenantId);
+      }
+      return next;
+    })
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -75,6 +96,7 @@ export default function Tenants() {
     setAlternatePhone("");
     setEmail("");
     setGovtId("");
+    setShowInputId(false);
   }
 
   function handleSelectEdit(tenant: Tenant) {
@@ -84,6 +106,7 @@ export default function Tenants() {
     setAlternatePhone(tenant.alternatePhone || "");
     setEmail(tenant.email || "");
     setGovtId(tenant.govtId || "");
+    setShowInputId(false);
 
     if (formRef.current) {
       formRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -351,20 +374,34 @@ export default function Tenants() {
             </div>
 
             <div className="sm:col-span-2">
-              <label
-                htmlFor="tenant-govt-id"
-                className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
-              >
-                Government ID
-              </label>
+              <div className="mb-1 flex items-center justify-between">
+                <label
+                  htmlFor="tenant-govt-id"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
+                  Government ID
+                </label>
+                {govtId.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowInputId((prev) => !prev)}
+                    className="text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
+                  >
+                    {showInputId ? "Hide ID" : "Show ID"}
+                  </button>
+                )}
+              </div>
               <input
                 id="tenant-govt-id"
-                type="text"
-                placeholder="Enter government ID number"
+                type={showInputId ? "text" : "password"}
+                placeholder="e.g. XXXX-XXXX-1234 (Aadhaar last 4 digits) or PAN"
                 value={govtId}
                 onChange={(e) => setGovtId(e.target.value)}
                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
               />
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                For Aadhaar, enter only the last 4 digits (e.g., XXXX-XXXX-1234) to minimize KYC liability.
+              </p>
             </div>
           </div>
 
@@ -442,8 +479,8 @@ export default function Tenants() {
           ) : (
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               {tenants.map((tenant) => {
+                const isRevealed = revealedIds.has(tenant.id);
                 const isCurrentEdit = selectedTenantId === tenant.id;
-
                 return (
                   <article
                     id={`tenant-${tenant.id}`}
@@ -498,11 +535,38 @@ export default function Tenants() {
                       </div>
 
                       <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-900">
-                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                          Government ID
-                        </p>
-                        <p className="mt-1 break-words text-sm text-gray-900 dark:text-gray-100">
-                          {tenant.govtId || "Not provided"}
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                            Government ID
+                          </p>
+                          {tenant.govtId && (
+                            <button
+                              type="button"
+                              onClick={() => toggleRevealId(tenant.id)}
+                              aria-label={isRevealed ? "Hide Government ID" : "Reveal Government ID"}
+                              className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                            >
+                              {isRevealed ? (
+                                <>
+                                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
+                                  </svg>
+                                  <span>Hide</span>
+                                </>
+                              ) : (
+                                <>
+                                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                  </svg>
+                                  <span>Show</span>
+                                </>
+                              )}
+                            </button>
+                          )}
+                        </div>
+                        <p className="mt-1 break-words font-mono text-sm text-gray-900 dark:text-gray-100">
+                          {isRevealed ? tenant.govtId : maskGovtId(tenant.govtId)}
                         </p>
                       </div>
                     </div>

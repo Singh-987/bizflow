@@ -128,7 +128,7 @@ export async function GET(request: Request) {
         paidOn: unknown;
         month: string;
         method: string;
-        type: string;
+        paymentType: string;
         note: string | null;
         propertyName: string;
         unitNumber: number;
@@ -273,7 +273,7 @@ export async function GET(request: Request) {
                         paidOn: payment.paidOn,
                         month: payment.month,
                         method: payment.method,
-                        type: payment.type,
+                        paymentType: payment.paymentType,
                         note: payment.note,
                         propertyName: property.name,
                         unitNumber: unit.number,
@@ -374,7 +374,7 @@ export async function GET(request: Request) {
                     const amount =
                         Number(payment.amount);
 
-                    if (payment.type === "RENT") {
+                    if (payment.paymentType === "RENT") {
                         const isAdvance =
                             (payment.note ?? "")
                                 .toLowerCase()
@@ -394,7 +394,7 @@ export async function GET(request: Request) {
                     }
 
                     if (
-                        payment.type === "ELECTRICITY"
+                        payment.paymentType === "ELECTRICITY"
                     ) {
                         unitElectricityPaid += amount;
                     }
