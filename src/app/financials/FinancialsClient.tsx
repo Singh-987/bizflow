@@ -2,6 +2,7 @@
 
 import AppShell from "@/components/layout/AppShell";
 import { downloadCsv } from "@/lib/exportCsv";
+import { downloadPaymentReceiptPdf } from "@/lib/generateReceiptPdf";
 import { formatDate } from "@/lib/utils";
 import { useEffect, useState } from "react";
 
@@ -130,32 +131,32 @@ export default function Financials() {
 
   const summaryCards = financialsData
     ? [
-        { label: "Rent Due", value: financialsData.rentDue },
-        { label: "Electricity Due", value: financialsData.electricityDue },
-        { label: "Total Due", value: financialsData.totalDue },
-        {
-          label: "Payments Received",
-          value: financialsData.paymentsReceived,
-          highlight: "text-emerald-600 dark:text-emerald-400",
-        },
-        {
-          label: "Outstanding",
-          value: financialsData.outstanding,
-          highlight:
-            financialsData.outstanding > 0
-              ? "text-rose-600 dark:text-rose-400"
-              : "text-slate-900 dark:text-slate-100",
-        },
-        { label: "Expenses", value: financialsData.expenses },
-        {
-          label: "Net Income",
-          value: financialsData.netIncome,
-          highlight:
-            financialsData.netIncome >= 0
-              ? "text-emerald-600 dark:text-emerald-400"
-              : "text-rose-600 dark:text-rose-400",
-        },
-      ]
+      { label: "Rent Due", value: financialsData.rentDue },
+      { label: "Electricity Due", value: financialsData.electricityDue },
+      { label: "Total Due", value: financialsData.totalDue },
+      {
+        label: "Payments Received",
+        value: financialsData.paymentsReceived,
+        highlight: "text-emerald-600 dark:text-emerald-400",
+      },
+      {
+        label: "Outstanding",
+        value: financialsData.outstanding,
+        highlight:
+          financialsData.outstanding > 0
+            ? "text-rose-600 dark:text-rose-400"
+            : "text-slate-900 dark:text-slate-100",
+      },
+      { label: "Expenses", value: financialsData.expenses },
+      {
+        label: "Net Income",
+        value: financialsData.netIncome,
+        highlight:
+          financialsData.netIncome >= 0
+            ? "text-emerald-600 dark:text-emerald-400"
+            : "text-rose-600 dark:text-rose-400",
+      },
+    ]
     : [];
 
   function handleExportUnitSummary(): void {
@@ -212,13 +213,13 @@ export default function Financials() {
       const rawDate = String(payment.paidOn ?? "");
       const isoDate = rawDate.includes("T")
         ? rawDate.split("T")[0]
-        : rawDate.slice(0,10);
-      const resolvedType =(payment as Record<string, unknown>).paymentType ?? payment.type ??
-      "";
-      return{
+        : rawDate.slice(0, 10);
+      const resolvedType = (payment as Record<string, unknown>).paymentType ?? payment.type ??
+        "";
+      return {
         ...payment,
-        paidOn: isoDate ? `="${isoDate}"`:"",
-        month: payment.month ? `="${payment.month}"`:"",
+        paidOn: isoDate ? `="${isoDate}"` : "",
+        month: payment.month ? `="${payment.month}"` : "",
         paymentType: String(resolvedType),
       };
     });
@@ -264,9 +265,9 @@ export default function Financials() {
               disabled={financialsLoading || !financialsData || financialsData.unitDetails.length === 0}
               className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
             >
-                Export Units CSV
+              Export Units CSV
             </button>
-            <button 
+            <button
               type="button"
               onClick={handleExportPaymentLedger}
               disabled={
@@ -281,7 +282,7 @@ export default function Financials() {
                 disabled:opacity-50"
             >
               Export Payment CSV
-            </button>  
+            </button>
           </div>
         </header>
 
@@ -334,9 +335,8 @@ export default function Financials() {
                       {card.label}
                     </p>
                     <p
-                      className={`mt-2 break-words text-2xl font-bold tracking-tight ${
-                        card.highlight || "text-slate-900 dark:text-slate-100"
-                      }`}
+                      className={`mt-2 break-words text-2xl font-bold tracking-tight ${card.highlight || "text-slate-900 dark:text-slate-100"
+                        }`}
                     >
                       {formatCurrency(card.value)}
                     </p>
@@ -428,15 +428,14 @@ export default function Financials() {
 
                           <td className="px-4 py-3 text-center">
                             <span
-                              className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                                unit.status.toUpperCase() === "PAID"
+                              className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ${unit.status.toUpperCase() === "PAID"
                                   ? "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800"
                                   : unit.status.toUpperCase() === "PARTIAL"
-                                  ? "bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800"
-                                  : unit.status.toUpperCase() === "OVERDUE"
-                                  ? "bg-red-50 text-red-700 border border-red-200 dark:bg-red-950 dark:text-red-300 dark:border-red-800"
-                                  : "bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800"
-                              }`}
+                                    ? "bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800"
+                                    : unit.status.toUpperCase() === "OVERDUE"
+                                      ? "bg-red-50 text-red-700 border border-red-200 dark:bg-red-950 dark:text-red-300 dark:border-red-800"
+                                      : "bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800"
+                                }`}
                             >
                               {unit.status}
                             </span>
@@ -491,9 +490,27 @@ export default function Financials() {
                             </p>
                           </div>
 
-                          <span className="rounded-full bg-blue-50 px-3 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-                            {payment.type}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span
+                              className="rounded-full bg-blue-50 px-3 py-0.5 text-xs
+      font-semibold text-blue-700 dark:bg-blue-950
+      dark:text-blue-300"
+                            >
+                              {payment.type}
+                            </span>
+
+                            <button
+                              type="button"
+                              onClick={() => downloadPaymentReceiptPdf(payment)}
+                              className="inline-flex items-center gap-1 rounded-lg border
+      border-slate-300 bg-white px-2.5 py-1 text-xs font-semibold
+      text-slate-700 transition hover:bg-slate-50
+      active:scale-[0.98] dark:border-slate-700 dark:bg-slate-800
+      dark:text-slate-200 dark:hover:bg-slate-700"
+                            >
+                              Receipt PDF
+                            </button>
+                          </div>
                         </div>
 
                         <div className="mt-4 grid grid-cols-2 gap-2 border-t border-slate-100 pt-3 text-xs text-slate-600 dark:border-slate-800 dark:text-slate-400">
