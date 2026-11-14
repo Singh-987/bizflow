@@ -56,7 +56,7 @@ export function downloadPaymentReceiptPdf(payment: ReceiptPaymentData): void{
     doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(16);
-    doc.text("Rentell", 22, 26);
+    doc.text("Rentello", 22, 26);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     doc.text("OFFICIAL PAYMENT RECEIPT", 22, 33);
