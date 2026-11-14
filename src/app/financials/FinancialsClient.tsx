@@ -1,6 +1,7 @@
 "use client";
 
 import AppShell from "@/components/layout/AppShell";
+import { downloadCsv } from "@/lib/exportCsv";
 import { formatDate } from "@/lib/utils";
 import { useEffect, useState } from "react";
 
@@ -157,6 +158,78 @@ export default function Financials() {
       ]
     : [];
 
+  function handleExportUnitSummary(): void {
+    if (!financialsData || financialsData.unitDetails.length === 0) {
+      return;
+    }
+
+    const headers = [
+      { key: "propertyName", label: "Property" },
+      { key: "unitNumber", label: "Unit" },
+      { key: "tenantName", label: "Tenant" },
+      { key: "rent", label: "Rent Due (INR)" },
+      { key: "rentPaid", label: "Rent Paid (INR)" },
+      { key: "advanceReceived", label: "Advance Received (INR)" },
+      { key: "rentPending", label: "Rent Pending (INR)" },
+      { key: "electricityDue", label: "Electricity Due (INR)" },
+      { key: "electricityPaid", label: "Electricity Paid (INR)" },
+      { key: "electricityPending", label: "Electricity Pending (INR)" },
+      { key: "totalDue", label: "Total Due (INR)" },
+      { key: "totalPaid", label: "Total Paid (INR)" },
+      { key: "totalPending", label: "Total Pending (INR)" },
+      { key: "status", label: "Status" },
+    ];
+
+    downloadCsv(
+      `rentello-unit-financials-${financialsData.month}.csv`,
+      headers,
+      financialsData.unitDetails
+    );
+  }
+
+  function handleExportPaymentLedger(): void {
+    if (
+      !financialsData ||
+      financialsData.paymentDetails.length === 0
+    ) {
+      return;
+    }
+
+    const headers = [
+      { key: "id", label: "Payment ID" },
+      { key: "paidOn", label: "Paid On" },
+      { key: "month", label: "For Month" },
+      { key: "propertyName", label: "Property" },
+      { key: "unitNumber", label: "Unit" },
+      { key: "tenantName", label: "Tenant" },
+      { key: "type", label: "Payment Type" },
+      { key: "method", label: "Payment Method" },
+      { key: "amount", label: "Amount (INR)" },
+      { key: "note", label: "Audit Note" },
+    ];
+
+    const rows = financialsData.paymentDetails.map((payment) => {
+      const rawDate = String(payment.paidOn ?? "");
+      const isoDate = rawDate.includes("T")
+        ? rawDate.split("T")[0]
+        : rawDate.slice(0,10);
+      const resolvedType =(payment as Record<string, unknown>).paymentType ?? payment.type ??
+      "";
+      return{
+        ...payment,
+        paidOn: isoDate ? `="${isoDate}"`:"",
+        month: payment.month ? `="${payment.month}"`:"",
+        paymentType: String(resolvedType),
+      };
+    });
+
+    downloadCsv(
+      `rentello-payments-${financialsData.month}.csv`,
+      headers,
+      rows
+    );
+  }
+
   return (
     <AppShell>
       <main className="mx-auto w-full max-w-7xl space-y-8">
@@ -183,8 +256,32 @@ export default function Financials() {
               type="month"
               value={month}
               onChange={(e) => setMonth(e.target.value)}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 [color-scheme:light] dark:[color-scheme:dark]"
+              className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             />
+            <button
+              type="button"
+              onClick={handleExportUnitSummary}
+              disabled={financialsLoading || !financialsData || financialsData.unitDetails.length === 0}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+            >
+                Export Units CSV
+            </button>
+            <button 
+              type="button"
+              onClick={handleExportPaymentLedger}
+              disabled={
+                financialsLoading ||
+                !financialsData ||
+                financialsData.paymentDetails.length === 0
+              }
+              className="inline-flex items-center gap-1.5 rounded-lg
+                bg-blue-600 px-3 py-1.5 text-xs font-semibold
+                text-white shadow-sm transition hover:bg-blue-700
+                active:scale-[0.98] disabled:cursor-not-allowed
+                disabled:opacity-50"
+            >
+              Export Payment CSV
+            </button>  
           </div>
         </header>
 
