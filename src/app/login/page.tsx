@@ -112,7 +112,38 @@ export default function Login() {
       setLoading(false);
     }
   }
-
+  async function loginAsDemo() {
+    setErrorMessage("");
+    setLoading(true);
+    try{
+      const response = await fetch("/api/demo/login",{
+        method: "POST",
+      });
+      const payload = await response.json();
+      if(!response.ok || !payload?.email || !payload?.password){
+        setErrorMessage(
+          payload?.error || "Unable to prepare demo account"
+        );
+        return;
+      }
+      const {error} = await authclient.signIn.email({
+        email: payload.email,
+        password: payload.password,
+      });
+      if(error){
+        setErrorMessage(error.message || "Demo sign-in failed. Please try again.");
+        return;
+      }
+      startTransition(()=>{
+        router.push("/");
+        router.refresh();
+      });
+    }catch{
+      setErrorMessage("Unable to launch demo right now. Check you connection.")
+    }finally{
+      setLoading(false);
+    }
+  }
   const isBusy = loading || isPending;
 
   return (
@@ -292,7 +323,28 @@ export default function Login() {
               )}
             </button>
           </form>
+          <div className="my-5 flex items-center gap-3">
+            <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
+            <span className="text-xs font-medium uppercase tracking-wider text-slate-400">
+              Or explore instantly
+            </span>
+            <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
+          </div>
 
+          <button
+            type="button"
+            disabled={isBusy}
+            onClick={() => void loginAsDemo()}
+            className="flex min-h-11 w-full items-center justify-center
+              gap-2 rounded-lg border border-blue-200 bg-blue-50/70
+              px-4 py-2.5 text-sm font-semibold text-blue-700
+              transition hover:bg-blue-100 active:scale-[0.98]
+              disabled:cursor-not-allowed disabled:opacity-60
+              dark:border-blue-900/60 dark:bg-blue-950/40
+              dark:text-blue-300 dark:hover:bg-blue-950/70"
+          >
+            {isBusy ? "Launching Demo..." : "Try Live Demo (No Signup)"}
+          </button>
           <div className="mt-6 border-t border-slate-200 pt-5 text-center text-sm dark:border-slate-800">
             <span className="text-slate-600 dark:text-slate-400">
               {isSignUp ? "Already have an account?" : "Don't have an account?"}
