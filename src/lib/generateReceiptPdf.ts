@@ -41,7 +41,7 @@ export function downloadPaymentReceiptPdf(payment: ReceiptPaymentData): void{
         format: "a4"
     });
 
-    const reciptNo = `REC-${String(payment.id).padStart(4,"0")}`;
+    const receiptNo = `REC-${String(payment.id).padStart(4,"0")}`;
     const category = String(
         payment.paymentType ?? payment.type ?? "RENT"
     ).toUpperCase();
@@ -62,7 +62,7 @@ export function downloadPaymentReceiptPdf(payment: ReceiptPaymentData): void{
     doc.text("OFFICIAL PAYMENT RECEIPT", 22, 33);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
-    doc.text(`Receipt #{receiptNo}`, 188, 26, {align: "right"});
+    doc.text(`Receipt #: ${receiptNo}`, 188, 26, { align: "right" });
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     doc.text(`Paid On: ${formatReceiptDate(payment.paidOn)}`, 188, 33, {align: "right"});
